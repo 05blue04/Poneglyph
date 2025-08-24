@@ -18,7 +18,7 @@ type Character struct {
 	Description string    `json:"description"`
 	Origin      string    `json:"origin"`
 	Fruit       string    `json:"devil_fruit"`
-	Bounty      string    `json:"bounty"`
+	Bounty      *Berries  `json:"bounty,omitempty"`
 	Debut       string    `json:"debut"`
 	//look to add a pre and post time skip field!
 }
@@ -47,6 +47,14 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 	v.Check(character.Origin != "", "origin", "must be provided")
 	v.Check(len(character.Origin) <= 200, "origin", "must not be more than 200 characters long")
 	v.Check(utf8.ValidString(character.Origin), "origin", "must be valid UTF-8")
+
+	//bounty validation
+	if character.Bounty != nil {
+		v.Check(*character.Bounty >= 0, "bounty", "must not be negative")
+		v.Check(*character.Bounty <= 10000000000, "bounty", "must not exceed 10B berries")
+		v.Check(*character.Bounty >= 1000, "bounty", "active bounties should be at least 1000 berries")
+	}
+
 }
 
 func (m CharacterModel) Insert(character *Character) error {
@@ -54,8 +62,12 @@ func (m CharacterModel) Insert(character *Character) error {
 		INSERT INTO characters (name, age, description, origin, fruit, bounty, debut)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
+	var bounty sql.NullInt64
+	if character.Bounty != nil {
+		bounty = sql.NullInt64{Int64: int64(*character.Bounty), Valid: true}
+	}
 
-	args := []any{character.Name, character.Age, character.Description, character.Origin, character.Fruit, character.Bounty, character.Debut}
+	args := []any{character.Name, character.Age, character.Description, character.Origin, character.Fruit, bounty, character.Debut}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 
@@ -113,6 +125,33 @@ func (m CharacterModel) Update(character *Character) error {
 	return nil
 }
 
-func (m CharacterModel) Delete(character *Character) error {
+func (m CharacterModel) Delete(id int64) error {
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+
+	query := `
+		DELETE FROM characters
+		WHERE id = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
+
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+
 	return nil
 }

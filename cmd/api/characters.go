@@ -11,13 +11,13 @@ import (
 
 func (app *application) createCharacterHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Name        string `json:"name"`
-		Age         int    `json:"age"`
-		Description string `json:"description"`
-		Origin      string `json:"origin"`
-		Fruit       string `json:"devil_fruit"`
-		Bounty      string `json:"bounty"`
-		Debut       string `json:"debut"`
+		Name        string        `json:"name"`
+		Age         int           `json:"age"`
+		Description string        `json:"description"`
+		Origin      string        `json:"origin"`
+		Fruit       string        `json:"devil_fruit"`
+		Bounty      *data.Berries `json:"bounty,omitempty"` //optional field
+		Debut       string        `json:"debut"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -83,4 +83,29 @@ func (app *application) showCharacterHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) deleteCharacterHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	err = app.models.Characters.Delete(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "character successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }

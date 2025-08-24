@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS characters (
     description TEXT NOT NULL,
     age integer NOT NULL,
     fruit text NOT NULL,
-    bounty text NOT NULL,
+    bounty bigint ,
     origin text NOT NULL,
     debut text NOT NULL,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW()
