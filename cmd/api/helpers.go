@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type envelope map[string]any
@@ -84,4 +87,48 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	}
 
 	return nil
+}
+
+func parseConfig() (config, error) {
+	var cfg config
+	var err error
+
+	portStr := getEnvWithDefault("PORT", "4000")
+	cfg.port, err = strconv.Atoi(portStr)
+	if err != nil {
+		return cfg, err
+	}
+
+	cfg.env = getEnvWithDefault("ENV", "development")
+
+	cfg.db.dsn = os.Getenv("DB_DSN")
+	if cfg.db.dsn == "" {
+		return cfg, fmt.Errorf("DB_DSN environment variable is required")
+	}
+
+	maxOpenConnsStr := getEnvWithDefault("DB_MAX_OPEN_CONNS", "25")
+	cfg.db.maxOpenConns, err = strconv.Atoi(maxOpenConnsStr)
+	if err != nil {
+		return cfg, err
+	}
+
+	maxIdleConnsStr := getEnvWithDefault("DB_MAX_IDLE_CONNS", "25")
+	cfg.db.maxIdleConns, err = strconv.Atoi(maxIdleConnsStr)
+	if err != nil {
+		return cfg, err
+	}
+
+	maxIdleTimeStr := getEnvWithDefault("DB_MAX_IDLE_TIME", "15m")
+	cfg.db.maxIdleTime, err = time.ParseDuration(maxIdleTimeStr)
+	if err != nil {
+		return cfg, err
+	}
+
+	return cfg, nil
+}
+func getEnvWithDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

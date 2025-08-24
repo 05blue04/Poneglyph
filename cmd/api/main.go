@@ -8,7 +8,11 @@ import (
 	"time"
 
 	"github.com/05blue04/Poneglyph/internal/data"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
+
+const version = "1.0.0"
 
 type config struct {
 	port int
@@ -28,7 +32,18 @@ type application struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		slog.Warn("No .env file found, using system environment variables")
+	}
+
 	var cfg config
+
+	cfg, err = parseConfig()
+	if err != nil {
+		slog.Error("Failed to parse .env file", "error", err)
+		os.Exit(1)
+	}
 
 	slogOptions := slog.HandlerOptions{
 		Level:     slog.LevelInfo,
