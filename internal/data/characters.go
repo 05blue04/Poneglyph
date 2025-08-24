@@ -4,23 +4,66 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/05blue04/Poneglyph/internal/validator"
+	"github.com/lib/pq"
 )
 
 type Character struct {
-	ID          int64     `json:"id"`
-	CreatedAt   time.Time `json:"-"`
-	Name        string    `json:"name"`
-	Age         int       `json:"age"`
-	Description string    `json:"description"`
-	Origin      string    `json:"origin"`
-	Fruit       string    `json:"devil_fruit"`
-	Bounty      *Berries  `json:"bounty,omitempty"`
-	Debut       string    `json:"debut"`
-	//look to add a pre and post time skip field!
+	ID            int64     `json:"id"`
+	CreatedAt     time.Time `json:"-"`
+	UpdatedAt     time.Time `json:"-"`
+	Name          string    `json:"name"`
+	Age           int       `json:"age"`
+	Description   string    `json:"description"`
+	Origin        string    `json:"origin"`
+	Bounty        *Berries  `json:"bounty,omitempty"`
+	Race          string    `json:"race"`
+	Organizations []string  `json:"organization,omitempty"`
+	Episode       int       `json:"episode"`
+	TimeSkip      string    `json:time_skip`
+}
+
+var validRaces = map[string]struct{}{
+	"human":            {},
+	"fishman":          {},
+	"merman":           {},
+	"giant":            {},
+	"dwarf":            {},
+	"mink":             {},
+	"lunarian":         {},
+	"buccaneer":        {},
+	"long arm tribe":   {},
+	"long leg tribe":   {},
+	"snake neck tribe": {},
+	"three-eye tribe":  {},
+	"snakeneck tribe":  {},
+	"longarm tribe":    {},
+	"longleg tribe":    {},
+	"tontatta":         {},
+	"kuja":             {},
+	"skypiean":         {},
+	"shandian":         {},
+	"birkan":           {},
+	"cyborg":           {},
+	"zombie":           {},
+	"artificial human": {},
+	"reindeer":         {}, // For Chopper
+	"skeleton":         {}, // For Brook
+}
+
+var validOrganizations = map[string]struct{}{
+	"marines":                   {},
+	"pirates":                   {},
+	"seven warlords of the sea": {},
+	"world government":          {},
+	"four emperors":             {},
+	"revolutionary army":        {},
+	"celestial dragons":         {},
 }
 
 type CharacterModel struct {
@@ -47,6 +90,7 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 	v.Check(character.Origin != "", "origin", "must be provided")
 	v.Check(len(character.Origin) <= 200, "origin", "must not be more than 200 characters long")
 	v.Check(utf8.ValidString(character.Origin), "origin", "must be valid UTF-8")
+	// potentially enforce origin creation to ensure the origin is an actual place in OP world
 
 	//bounty validation
 	if character.Bounty != nil {
@@ -55,19 +99,40 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 		v.Check(*character.Bounty >= 1000, "bounty", "active bounties should be at least 1000 berries")
 	}
 
+	//race validation
+	v.Check(character.Race != "", "race", "must be provided")
+	v.Check(IsValidRace(character.Race), "race", "must be a valid One Piece race")
+
+	//organization validation
+	if character.Organizations != nil {
+		v.Check(validator.Unique(character.Organizations), "organizations", "must not contain duplicate values")
+		for _, org := range character.Organizations {
+			v.Check(isValidOrganization(org), "organizations", fmt.Sprintf("%v is not a valid organization", org))
+		}
+	}
+
+	//episode validation
+	v.Check(character.Episode != 0, "episode", "must be provided")
+	v.Check(character.Episode <= 1200, "episode", "must not be greater than 1200")
+	v.Check(character.Episode > 0, "episode", "must not be negative")
+
+	//time skip validationa
+	v.Check(character.TimeSkip != "", "time_skip", "must be provided")
+	v.Check(isValidTimeSkip(character.TimeSkip), "time_skip", "must be either pre or post")
+
 }
 
 func (m CharacterModel) Insert(character *Character) error {
 	query := `
-		INSERT INTO characters (name, age, description, origin, fruit, bounty, debut)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO characters (name, age, description, origin, bounty, race, organization, debut, time_skip)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 	var bounty sql.NullInt64
 	if character.Bounty != nil {
 		bounty = sql.NullInt64{Int64: int64(*character.Bounty), Valid: true}
 	}
 
-	args := []any{character.Name, character.Age, character.Description, character.Origin, character.Fruit, bounty, character.Debut}
+	args := []any{character.Name, character.Age, character.Description, character.Origin, bounty, character.Race, pq.Array(character.Organizations), character.Episode, character.TimeSkip}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 
@@ -101,12 +166,15 @@ func (m CharacterModel) Get(id int64) (*Character, error) {
 	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&character.ID,
 		&character.CreatedAt,
+		&character.UpdatedAt,
 		&character.Age,
 		&character.Description,
 		&character.Origin,
-		&character.Fruit,
 		&character.Bounty,
-		&character.Debut,
+		&character.Race,
+		&character.Organizations,
+		&character.Episode,
+		&character.TimeSkip,
 	)
 
 	if err != nil {
@@ -154,4 +222,57 @@ func (m CharacterModel) Delete(id int64) error {
 	}
 
 	return nil
+}
+
+// IsValidRace checks if the provided race is a valid One Piece race
+func IsValidRace(race string) bool {
+	if race == "" {
+		return false
+	}
+
+	_, exists := validRaces[strings.TrimSpace(strings.ToLower(race))]
+	return exists
+}
+
+// IsValidOrganization checks if the provieded org is a valid one
+func isValidOrganization(org string) bool {
+	if org == "" {
+		return false
+	}
+
+	_, exists := validOrganizations[strings.TrimSpace(strings.ToLower(org))]
+	return exists
+}
+
+// GetValidRaces returns a slice of all valid races (for API documentation, etc.)
+func GetValidRaces() []string {
+	races := make([]string, 0, len(validRaces))
+	for race := range validRaces {
+		// Capitalize first letter for display
+		races = append(races, race)
+	}
+	return races
+}
+
+func isValidTimeSkip(timeSkip string) bool {
+	clean := strings.TrimSpace(strings.ToLower(timeSkip))
+
+	if clean == "pre" {
+		return true
+	}
+
+	if clean == "post" {
+		return true
+	}
+
+	return false
+}
+
+// GetValidOrganizations returns a slice of all valid organizations (for API documentation, etc.)
+func GetValidOrganizations() []string {
+	organizations := make([]string, 0, len(validOrganizations))
+	for organization := range validOrganizations {
+		organizations = append(organizations, organization)
+	}
+	return organizations
 }

@@ -11,13 +11,15 @@ import (
 
 func (app *application) createCharacterHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Name        string        `json:"name"`
-		Age         int           `json:"age"`
-		Description string        `json:"description"`
-		Origin      string        `json:"origin"`
-		Fruit       string        `json:"devil_fruit"`
-		Bounty      *data.Berries `json:"bounty,omitempty"` //optional field
-		Debut       string        `json:"debut"`
+		Name          string        `json:"name"`
+		Age           int           `json:"age"`
+		Description   string        `json:"description"`
+		Origin        string        `json:"origin"`
+		Bounty        *data.Berries `json:"bounty,omitempty"` //optional field
+		Race          string        `json:"race"`
+		Organizations []string      `json:"organizations,omitempty"`
+		Episode       int           `json:"episode"`
+		TimeSkip      string        `json:"time_skip"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -27,13 +29,15 @@ func (app *application) createCharacterHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	character := &data.Character{
-		Name:        input.Name,
-		Age:         input.Age,
-		Description: input.Description,
-		Origin:      input.Origin,
-		Fruit:       input.Fruit,
-		Bounty:      input.Bounty,
-		Debut:       input.Debut,
+		Name:          input.Name,
+		Age:           input.Age,
+		Description:   input.Description,
+		Origin:        input.Origin,
+		Bounty:        input.Bounty,
+		Race:          input.Race,
+		Organizations: input.Organizations,
+		Episode:       input.Episode,
+		TimeSkip:      input.TimeSkip,
 	}
 
 	v := validator.New()

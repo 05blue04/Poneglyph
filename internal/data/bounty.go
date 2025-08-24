@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var ErrInvalidBerriesFormat = errors.New("invalid berries format")
+var ErrInvalidBerriesFormat = errors.New("invalid berries format: supported format is ('300M berries', '1.5B berries', '100 berries')")
 
 type Berries int64
 
