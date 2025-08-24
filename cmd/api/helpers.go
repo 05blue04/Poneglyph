@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 type envelope map[string]any
@@ -101,24 +103,24 @@ func parseConfig() (config, error) {
 
 	cfg.env = getEnvWithDefault("ENV", "development")
 
-	cfg.db.dsn = os.Getenv("DB_DSN")
+	cfg.db.dsn = os.Getenv("DSN")
 	if cfg.db.dsn == "" {
-		return cfg, fmt.Errorf("DB_DSN environment variable is required")
+		return cfg, fmt.Errorf("DSN environment variable is required")
 	}
 
-	maxOpenConnsStr := getEnvWithDefault("DB_MAX_OPEN_CONNS", "25")
+	maxOpenConnsStr := getEnvWithDefault("MAX_OPEN_CONNS", "25")
 	cfg.db.maxOpenConns, err = strconv.Atoi(maxOpenConnsStr)
 	if err != nil {
 		return cfg, err
 	}
 
-	maxIdleConnsStr := getEnvWithDefault("DB_MAX_IDLE_CONNS", "25")
+	maxIdleConnsStr := getEnvWithDefault("MAX_IDLE_CONNS", "25")
 	cfg.db.maxIdleConns, err = strconv.Atoi(maxIdleConnsStr)
 	if err != nil {
 		return cfg, err
 	}
 
-	maxIdleTimeStr := getEnvWithDefault("DB_MAX_IDLE_TIME", "15m")
+	maxIdleTimeStr := getEnvWithDefault("MAX_IDLE_TIME", "15m")
 	cfg.db.maxIdleTime, err = time.ParseDuration(maxIdleTimeStr)
 	if err != nil {
 		return cfg, err
@@ -131,4 +133,15 @@ func getEnvWithDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func (app *application) readIDParam(r *http.Request) (int64, error) {
+	params := httprouter.ParamsFromContext(r.Context())
+
+	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
+	if err != nil || id < 1 {
+		return 0, errors.New("invalid id parameter")
+	}
+
+	return id, nil
 }
