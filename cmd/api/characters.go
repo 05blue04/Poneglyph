@@ -89,6 +89,72 @@ func (app *application) showCharacterHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func (app *application) updateCharacterHandler(w http.ResponseWriter, r *http.Request) {
+
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	character, err := app.models.Characters.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	var input struct {
+		Name          *string       `json:"name"`
+		Age           *int          `json:"age"`
+		Description   *string       `json:"description"`
+		Origin        *string       `json:"origin"`
+		Bounty        *data.Berries `json:"bounty,omitempty"`
+		Race          *string       `json:"race"`
+		Organizations []string      `json:"organizations,omitempty"`
+		Episode       *int          `json:"episode"`
+		TimeSkip      *string       `json:"time_skip"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	updateIfNotNil(&character.Name, input.Name)
+	updateIfNotNil(&character.Age, input.Age)
+	updateIfNotNil(&character.Description, input.Description)
+	updateIfNotNil(&character.Origin, input.Origin)
+	updateIfNotNil(&character.Race, input.Race)
+	updateIfNotNil(&character.Episode, input.Episode)
+	updateIfNotNil(&character.TimeSkip, input.TimeSkip)
+
+	if input.Organizations != nil {
+		character.Organizations = input.Organizations
+	}
+
+	if input.Bounty != nil {
+		character.Bounty = input.Bounty
+	}
+
+	err = app.models.Characters.Update(character)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"character": character}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+}
+
 func (app *application) deleteCharacterHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {

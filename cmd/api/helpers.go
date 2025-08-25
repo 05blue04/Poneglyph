@@ -145,3 +145,9 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 
 	return id, nil
 }
+
+func updateIfNotNil[T any](dest *T, src *T) {
+	if src != nil {
+		*dest = *src
+	}
+}

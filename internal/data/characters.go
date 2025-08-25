@@ -25,7 +25,7 @@ type Character struct {
 	Race          string    `json:"race"`
 	Organizations []string  `json:"organization,omitempty"`
 	Episode       int       `json:"episode"`
-	TimeSkip      string    `json:time_skip`
+	TimeSkip      string    `json:"time_skip"`
 }
 
 var validRaces = map[string]struct{}{
@@ -124,7 +124,7 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 
 func (m CharacterModel) Insert(character *Character) error {
 	query := `
-		INSERT INTO characters (name, age, description, origin, bounty, race, organization, debut, time_skip)
+		INSERT INTO characters (name, age, description, origin, bounty, race, organizations, debut, time_skip)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 	var bounty sql.NullInt64
@@ -190,6 +190,41 @@ func (m CharacterModel) Get(id int64) (*Character, error) {
 }
 
 func (m CharacterModel) Update(character *Character) error {
+	query := `
+		UPDATE characters
+		SET name = $1, age = $2, description = $3, origin = $4, bounty = $5, race = $6, organizations = $7, time_skip = $8, updated_at = now() 
+		WHERE id = $9
+		RETURNING updated_at
+	`
+	var bounty sql.NullInt64
+	if character.Bounty != nil {
+		bounty = sql.NullInt64{Int64: int64(*character.Bounty), Valid: true}
+	}
+
+	args := []any{
+		character.Name,
+		character.Age,
+		character.Description,
+		character.Origin,
+		bounty,
+		character.Race,
+		pq.Array(character.Organizations),
+		character.TimeSkip,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&character.UpdatedAt)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+
 	return nil
 }
 

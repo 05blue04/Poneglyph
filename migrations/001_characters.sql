@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS characters (
     origin text NOT NULL,
     Episode int NOT NULL,
     race text NOT NULL DEFAULT 'human',
-    organization text,
+    organizations text[],
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     updated_at timestamp(0) with time zone NOT NULL DEFAULT NOW()
     time_skip text NOT NULL;
