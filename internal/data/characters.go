@@ -217,12 +217,7 @@ func (m CharacterModel) Update(character *Character) error {
 
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&character.UpdatedAt)
 	if err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			return ErrEditConflict
-		default:
-			return err
-		}
+		return err
 	}
 
 	return nil
