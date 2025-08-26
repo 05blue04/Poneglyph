@@ -145,11 +145,12 @@ func (m CharacterModel) Get(id int64) (*Character, error) {
 		&character.ID,
 		&character.CreatedAt,
 		&character.UpdatedAt,
+		&character.Name,
 		&character.Age,
 		&character.Description,
 		&character.Origin,
-		&character.Bounty,
 		&character.Race,
+		&character.Bounty,
 		&character.Episode,
 		&character.TimeSkip,
 	)
@@ -169,8 +170,8 @@ func (m CharacterModel) Get(id int64) (*Character, error) {
 func (m CharacterModel) Update(character *Character) error {
 	query := `
 		UPDATE characters
-		SET name = $1, age = $2, description = $3, origin = $4, bounty = $5, race = $6,time_skip = $8, updated_at = now() 
-		WHERE id = $9
+		SET name = $1, age = $2, description = $3, origin = $4, bounty = $5, race = $6,time_skip = $7, updated_at = now() 
+		WHERE id = $8
 	`
 	var bounty sql.NullInt64
 	if character.Bounty != nil {
@@ -185,6 +186,7 @@ func (m CharacterModel) Update(character *Character) error {
 		bounty,
 		character.Race,
 		character.TimeSkip,
+		character.ID,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)

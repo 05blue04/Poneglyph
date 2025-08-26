@@ -124,13 +124,21 @@ func (app *application) updateCharacterHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	if input.Race != nil {
+		race := strings.ToLower(*input.TimeSkip)
+		character.Race = race
+	}
+
+	if input.TimeSkip != nil {
+		timeSkip := strings.ToLower(*input.TimeSkip)
+		character.TimeSkip = timeSkip
+	}
+
 	updateIfNotNil(&character.Name, input.Name)
 	updateIfNotNil(&character.Age, input.Age)
 	updateIfNotNil(&character.Description, input.Description)
 	updateIfNotNil(&character.Origin, input.Origin)
-	updateIfNotNil(&character.Race, input.Race)
 	updateIfNotNil(&character.Episode, input.Episode)
-	updateIfNotNil(&character.TimeSkip, input.TimeSkip)
 
 	if input.Bounty != nil {
 		character.Bounty = input.Bounty
