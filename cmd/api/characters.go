@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/05blue04/Poneglyph/internal/data"
 	"github.com/05blue04/Poneglyph/internal/validator"
@@ -11,15 +12,14 @@ import (
 
 func (app *application) createCharacterHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Name          string        `json:"name"`
-		Age           int           `json:"age"`
-		Description   string        `json:"description"`
-		Origin        string        `json:"origin"`
-		Bounty        *data.Berries `json:"bounty,omitempty"` //optional field
-		Race          string        `json:"race"`
-		Organizations []string      `json:"organizations,omitempty"`
-		Episode       int           `json:"episode"`
-		TimeSkip      string        `json:"time_skip"`
+		Name        string        `json:"name"`
+		Age         int           `json:"age"`
+		Description string        `json:"description"`
+		Origin      string        `json:"origin"`
+		Bounty      *data.Berries `json:"bounty,omitempty"` //optional field
+		Race        string        `json:"race"`
+		Episode     int           `json:"episode"`
+		TimeSkip    string        `json:"time_skip"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -34,9 +34,9 @@ func (app *application) createCharacterHandler(w http.ResponseWriter, r *http.Re
 		Description: input.Description,
 		Origin:      input.Origin,
 		Bounty:      input.Bounty,
-		Race:        input.Race,
+		Race:        strings.ToLower(input.Race),
 		Episode:     input.Episode,
-		TimeSkip:    input.TimeSkip,
+		TimeSkip:    strings.ToLower(input.TimeSkip),
 	}
 
 	v := validator.New()

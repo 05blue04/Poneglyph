@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -103,7 +102,7 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 
 func (m CharacterModel) Insert(character *Character) error {
 	query := `
-		INSERT INTO characters (name, age, description, origin, bounty, race, debut, time_skip)
+		INSERT INTO characters (name, age, description, origin, bounty, race, episode, time_skip)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	var bounty sql.NullInt64
@@ -236,7 +235,7 @@ func IsValidRace(race string) bool {
 		return false
 	}
 
-	_, exists := validRaces[strings.TrimSpace(strings.ToLower(race))]
+	_, exists := validRaces[race]
 	return exists
 }
 
@@ -251,13 +250,11 @@ func GetValidRaces() []string {
 }
 
 func isValidTimeSkip(timeSkip string) bool {
-	clean := strings.TrimSpace(strings.ToLower(timeSkip))
-
-	if clean == "pre" {
+	if timeSkip == "pre" {
 		return true
 	}
 
-	if clean == "post" {
+	if timeSkip == "post" {
 		return true
 	}
 
