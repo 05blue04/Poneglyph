@@ -4,28 +4,25 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/05blue04/Poneglyph/internal/validator"
-	"github.com/lib/pq"
 )
 
 type Character struct {
-	ID            int64     `json:"id"`
-	CreatedAt     time.Time `json:"-"`
-	UpdatedAt     time.Time `json:"-"`
-	Name          string    `json:"name"`
-	Age           int       `json:"age"`
-	Description   string    `json:"description"`
-	Origin        string    `json:"origin"`
-	Bounty        *Berries  `json:"bounty,omitempty"`
-	Race          string    `json:"race"`
-	Organizations []string  `json:"organization,omitempty"`
-	Episode       int       `json:"episode"`
-	TimeSkip      string    `json:"time_skip"`
+	ID          int64     `json:"id"`
+	CreatedAt   time.Time `json:"-"`
+	UpdatedAt   time.Time `json:"-"`
+	Name        string    `json:"name"`
+	Age         int       `json:"age"`
+	Description string    `json:"description"`
+	Origin      string    `json:"origin"`
+	Bounty      *Berries  `json:"bounty,omitempty"`
+	Race        string    `json:"race"`
+	Episode     int       `json:"episode"`
+	TimeSkip    string    `json:"time_skip"`
 }
 
 var validRaces = map[string]struct{}{
@@ -54,16 +51,6 @@ var validRaces = map[string]struct{}{
 	"artificial human": {},
 	"reindeer":         {}, // For Chopper
 	"skeleton":         {}, // For Brook
-}
-
-var validOrganizations = map[string]struct{}{
-	"marines":                   {},
-	"pirates":                   {},
-	"seven warlords of the sea": {},
-	"world government":          {},
-	"four emperors":             {},
-	"revolutionary army":        {},
-	"celestial dragons":         {},
 }
 
 type CharacterModel struct {
@@ -103,14 +90,6 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 	v.Check(character.Race != "", "race", "must be provided")
 	v.Check(IsValidRace(character.Race), "race", "must be a valid One Piece race")
 
-	//organization validation
-	if character.Organizations != nil {
-		v.Check(validator.Unique(character.Organizations), "organizations", "must not contain duplicate values")
-		for _, org := range character.Organizations {
-			v.Check(isValidOrganization(org), "organizations", fmt.Sprintf("%v is not a valid organization", org))
-		}
-	}
-
 	//episode validation
 	v.Check(character.Episode != 0, "episode", "must be provided")
 	v.Check(character.Episode <= 1200, "episode", "must not be greater than 1200")
@@ -124,15 +103,15 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 
 func (m CharacterModel) Insert(character *Character) error {
 	query := `
-		INSERT INTO characters (name, age, description, origin, bounty, race, organizations, debut, time_skip)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO characters (name, age, description, origin, bounty, race, debut, time_skip)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	var bounty sql.NullInt64
 	if character.Bounty != nil {
 		bounty = sql.NullInt64{Int64: int64(*character.Bounty), Valid: true}
 	}
 
-	args := []any{character.Name, character.Age, character.Description, character.Origin, bounty, character.Race, pq.Array(character.Organizations), character.Episode, character.TimeSkip}
+	args := []any{character.Name, character.Age, character.Description, character.Origin, bounty, character.Race, character.Episode, character.TimeSkip}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 
@@ -172,7 +151,6 @@ func (m CharacterModel) Get(id int64) (*Character, error) {
 		&character.Origin,
 		&character.Bounty,
 		&character.Race,
-		&character.Organizations,
 		&character.Episode,
 		&character.TimeSkip,
 	)
@@ -192,9 +170,8 @@ func (m CharacterModel) Get(id int64) (*Character, error) {
 func (m CharacterModel) Update(character *Character) error {
 	query := `
 		UPDATE characters
-		SET name = $1, age = $2, description = $3, origin = $4, bounty = $5, race = $6, organizations = $7, time_skip = $8, updated_at = now() 
+		SET name = $1, age = $2, description = $3, origin = $4, bounty = $5, race = $6,time_skip = $8, updated_at = now() 
 		WHERE id = $9
-		RETURNING updated_at
 	`
 	var bounty sql.NullInt64
 	if character.Bounty != nil {
@@ -208,14 +185,13 @@ func (m CharacterModel) Update(character *Character) error {
 		character.Origin,
 		bounty,
 		character.Race,
-		pq.Array(character.Organizations),
 		character.TimeSkip,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&character.UpdatedAt)
+	_, err := m.DB.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -264,16 +240,6 @@ func IsValidRace(race string) bool {
 	return exists
 }
 
-// IsValidOrganization checks if the provieded org is a valid one
-func isValidOrganization(org string) bool {
-	if org == "" {
-		return false
-	}
-
-	_, exists := validOrganizations[strings.TrimSpace(strings.ToLower(org))]
-	return exists
-}
-
 // GetValidRaces returns a slice of all valid races (for API documentation, etc.)
 func GetValidRaces() []string {
 	races := make([]string, 0, len(validRaces))
@@ -296,13 +262,4 @@ func isValidTimeSkip(timeSkip string) bool {
 	}
 
 	return false
-}
-
-// GetValidOrganizations returns a slice of all valid organizations (for API documentation, etc.)
-func GetValidOrganizations() []string {
-	organizations := make([]string, 0, len(validOrganizations))
-	for organization := range validOrganizations {
-		organizations = append(organizations, organization)
-	}
-	return organizations
 }
