@@ -184,7 +184,7 @@ func (app *application) deleteCharacterHandler(w http.ResponseWriter, r *http.Re
 
 func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Name     string
+		Search   string
 		Age      int
 		Origin   string
 		Race     string
@@ -197,7 +197,7 @@ func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Req
 
 	qs := r.URL.Query()
 
-	input.Name = app.readString(qs, "name", "")
+	input.Search = app.readString(qs, "search", "")
 	input.Age = app.readInt(qs, "age", 0, v)
 	input.Origin = app.readString(qs, "origin", "")
 	input.Race = strings.ToLower(app.readString(qs, "race", ""))
@@ -216,13 +216,13 @@ func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	characters, err := app.models.Characters.GetAll(input.Name, input.Age, input.Origin, input.Race, input.Bounty, input.TimeSkip, input.Filters)
+	characters, metadata, err := app.models.Characters.GetAll(input.Search, input.Age, input.Origin, input.Race, input.Bounty, input.TimeSkip, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"characters": characters}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"characters": characters, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

@@ -233,7 +233,7 @@ func (m CharacterModel) Delete(id int64) error {
 	return nil
 }
 
-func (m CharacterModel) GetAll(name string, age int, origin, race string, bounty Berries, timeSkip string, filters Filters) ([]*Character, error) {
+func (m CharacterModel) GetAll(search string, age int, origin, race string, bounty Berries, timeSkip string, filters Filters) ([]*Character, Metadata, error) {
 
 	bountyCondition := "(bounty >= $5 OR $5 = 0)"
 
@@ -241,32 +241,35 @@ func (m CharacterModel) GetAll(name string, age int, origin, race string, bounty
 		bountyCondition = "(bounty >= $5 AND bounty > 0)"
 	}
 	query := fmt.Sprintf(`
-		SELECT id, created_at, name, age, description, origin, race, bounty, episode, time_skip
+		SELECT COUNT(*) OVER(), id, created_at, name, age, description, origin, race, bounty, episode, time_skip
 		FROM characters
-		WHERE (to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		WHERE (to_tsvector('english', name || ' ' || description) @@ plainto_tsquery('english', $1) OR $1 = '')
 		AND (LOWER(race) = LOWER($2) OR $2 = '')
 		AND (LOWER(time_skip) = LOWER($3) OR $3 = '')
 		AND (age >= $4 OR $4 = 0)
 		AND %s
-		ORDER BY %s %s, id ASC`, bountyCondition, filters.sortColumn(), filters.sortDirection())
+		ORDER BY %s %s, id ASC
+		LIMIT $6 OFFSET $7`, bountyCondition, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query, name, race, timeSkip, age, bounty)
+	rows, err := m.DB.QueryContext(ctx, query, search, race, timeSkip, age, bounty, filters.limit(), filters.offset())
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
 	//ensure that the resultset is closed before GetAll() returns.
 	defer rows.Close()
 
 	characters := []*Character{}
+	totalRecords := 0
 
 	for rows.Next() {
 		var character Character
 
 		err := rows.Scan(
+			&totalRecords,
 			&character.ID,
 			&character.CreatedAt,
 			&character.Name,
@@ -279,17 +282,19 @@ func (m CharacterModel) GetAll(name string, age int, origin, race string, bounty
 			&character.TimeSkip,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		characters = append(characters, &character)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
-	return characters, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return characters, metadata, nil
 
 }
 
