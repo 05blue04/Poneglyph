@@ -231,6 +231,56 @@ func (m CharacterModel) Delete(id int64) error {
 	return nil
 }
 
+func (m CharacterModel) GetAll(args ...any) ([]*Character, error) {
+	query := `
+		SELECT id, created_at, name, age, description, origin, race, bounty, episode, time_skip
+		FROM characters
+		ORDER BY id
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	//ensure that the resultset is closed before GetAll() returns.
+	defer rows.Close()
+
+	characters := []*Character{}
+
+	for rows.Next() {
+		var character Character
+
+		err := rows.Scan(
+			&character.ID,
+			&character.CreatedAt,
+			&character.Name,
+			&character.Age,
+			&character.Description,
+			&character.Origin,
+			&character.Race,
+			&character.Bounty,
+			&character.Episode,
+			&character.TimeSkip,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		characters = append(characters, &character)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return characters, nil
+
+}
+
 // IsValidRace checks if the provided race is a valid One Piece race
 func IsValidRace(race string) bool {
 	if race == "" {

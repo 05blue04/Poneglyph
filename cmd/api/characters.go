@@ -181,3 +181,49 @@ func (app *application) deleteCharacterHandler(w http.ResponseWriter, r *http.Re
 	}
 
 }
+
+func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Name     string
+		Age      int
+		Origin   string
+		Race     string
+		Bounty   *data.Berries
+		TimeSkip string
+		data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Name = app.readString(qs, "name", "")
+	input.Age = app.readInt(qs, "age", 0, v)
+	input.Origin = app.readString(qs, "origin", "")
+	input.Race = app.readString(qs, "race", "")
+	// input.Bounty = app.readBounty
+
+	//pagination shit
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "name", "age", "bounty", "race"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	characters, err := app.models.Characters.GetAll(input)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"characters": characters}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+}
