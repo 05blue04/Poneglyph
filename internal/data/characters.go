@@ -82,7 +82,7 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 	if character.Bounty != nil {
 		v.Check(*character.Bounty >= 0, "bounty", "must not be negative")
 		v.Check(*character.Bounty <= 10000000000, "bounty", "must not exceed 10B berries")
-		v.Check(*character.Bounty >= 1000, "bounty", "active bounties should be at least 1000 berries")
+		v.Check(*character.Bounty >= 100, "bounty", "active bounties should be at least 100 berries")
 	}
 
 	//race validation
@@ -231,17 +231,22 @@ func (m CharacterModel) Delete(id int64) error {
 	return nil
 }
 
-func (m CharacterModel) GetAll(args ...any) ([]*Character, error) {
+func (m CharacterModel) GetAll(name string, age int, origin, race string, bounty Berries, timeSkip string, filters Filters) ([]*Character, error) {
 	query := `
 		SELECT id, created_at, name, age, description, origin, race, bounty, episode, time_skip
 		FROM characters
+		WHERE (LOWER(name) = LOWER($1) OR $1 = '')
+		AND (LOWER(race) = LOWER($2) OR $2 = '')
+		AND (LOWER(time_skip) = LOWER($3) OR $3 = '')
+		AND (age >= $4 OR $4 = 0)
+		AND (bounty >= $5 OR $5 = 0)
 		ORDER BY id
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query)
+	rows, err := m.DB.QueryContext(ctx, query, name, race, timeSkip, age, bounty)
 	if err != nil {
 		return nil, err
 	}

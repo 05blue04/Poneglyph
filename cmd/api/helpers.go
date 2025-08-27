@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/05blue04/Poneglyph/internal/data"
 	"github.com/05blue04/Poneglyph/internal/validator"
 	"github.com/julienschmidt/httprouter"
 )
@@ -174,6 +175,24 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	}
 
 	return i
+}
+
+// readBounty() helper returns a Berries value from the query string
+func (app *application) readBounty(qs url.Values, key string, defaultValue data.Berries, v *validator.Validator) data.Berries {
+	s := qs.Get(key)
+	if s == "" {
+		return defaultValue
+	}
+
+	var bounty data.Berries
+	jsonBytes := []byte(strconv.Quote(s))
+	err := bounty.UnmarshalJSON(jsonBytes)
+	if err != nil {
+		v.AddError(key, "must be a valid bounty format (e.g., '1B berries', '500M berries', '1000 berries')")
+		return defaultValue
+	}
+
+	return bounty
 }
 
 func updateIfNotNil[T any](dest *T, src *T) {

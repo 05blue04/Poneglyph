@@ -188,7 +188,7 @@ func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Req
 		Age      int
 		Origin   string
 		Race     string
-		Bounty   *data.Berries
+		Bounty   data.Berries
 		TimeSkip string
 		data.Filters
 	}
@@ -200,8 +200,9 @@ func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Req
 	input.Name = app.readString(qs, "name", "")
 	input.Age = app.readInt(qs, "age", 0, v)
 	input.Origin = app.readString(qs, "origin", "")
-	input.Race = app.readString(qs, "race", "")
-	// input.Bounty = app.readBounty
+	input.Race = strings.ToLower(app.readString(qs, "race", ""))
+	input.Bounty = app.readBounty(qs, "bounty", data.Berries(0), v)
+	input.TimeSkip = strings.ToLower(app.readString(qs, "time_skip", ""))
 
 	//pagination shit
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
@@ -215,7 +216,7 @@ func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	characters, err := app.models.Characters.GetAll(input)
+	characters, err := app.models.Characters.GetAll(input.Name, input.Age, input.Origin, input.Race, input.Bounty, input.TimeSkip, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
