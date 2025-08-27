@@ -79,10 +79,7 @@ func (app *application) showCharacterHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	headers := make(http.Header)
-	headers.Set("Location", fmt.Sprintf("/v1/characters/%d", character.ID))
-
-	err = app.writeJSON(w, http.StatusOK, envelope{"character": character}, headers)
+	err = app.writeJSON(w, http.StatusOK, envelope{"character": character}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

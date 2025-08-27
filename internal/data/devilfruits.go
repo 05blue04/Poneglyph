@@ -3,10 +3,12 @@ package data
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 	"unicode/utf8"
 
 	"github.com/05blue04/Poneglyph/internal/validator"
+	"github.com/lib/pq"
 )
 
 type DevilFruit struct {
@@ -17,7 +19,7 @@ type DevilFruit struct {
 	Description    string    `json:"description"`
 	Type           string    `json:"type"`
 	Character_id   int64     `json:"character_id"`
-	PreviousOwners string    `json:"previous_owners"`
+	PreviousOwners []string  `json:"previous_owners"`
 	Episode        int       `json:"episode"`
 }
 
@@ -60,14 +62,79 @@ func ValidateDevilFruit(v *validator.Validator, devilFruit *DevilFruit) {
 }
 
 func (m DevilFruitModel) Insert(devilFruit *DevilFruit) error {
-	return nil
+	query := `
+		INSERT INTO devilfruits (name, description, type, character_id, previousOwners, episode)
+    	VALUES ($1, $2, $3, $4, $5, $6)
+ 		RETURNING id
+	`
+
+	args := []any{devilFruit.Name, devilFruit.Description, devilFruit.Type, devilFruit.Character_id, pq.Array(devilFruit.PreviousOwners), devilFruit.Episode}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&devilFruit.ID)
 }
 
 func (m DevilFruitModel) Get(id int64) (*DevilFruit, error) {
-	return nil, nil
+	query := `
+		SELECT * FROM devilfruits
+		WHERE id = $1
+	`
+
+	var devilFruit DevilFruit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
+		&devilFruit.ID,
+		&devilFruit.CreatedAt,
+		&devilFruit.UpdatedAt,
+		&devilFruit.Name,
+		&devilFruit.Description,
+		&devilFruit.Type,
+		&devilFruit.Character_id,
+		pq.Array(&devilFruit.PreviousOwners),
+		&devilFruit.Episode,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &devilFruit, nil
 }
 
 func (m DevilFruitModel) Update(devilFruit *DevilFruit) error {
+	query := `
+		UPDATE devilfruits
+		SET name = $1, description = $2, type = $3, character_id = $4, previousOwners = $5, episode = $6, updated_at = now()
+		WHERE id = $7
+	`
+
+	args := []any{
+		devilFruit.Name,
+		devilFruit.Description,
+		devilFruit.Type,
+		devilFruit.Character_id,
+		pq.Array(devilFruit.PreviousOwners),
+		devilFruit.Episode,
+		devilFruit.ID,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	_, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -102,7 +169,9 @@ func (m DevilFruitModel) Delete(id int64) error {
 	return nil
 }
 
-func (m DevilFruitModel) GetAll(args ...any) ([]*DevilFruit, Metadata, error)
+func (m DevilFruitModel) GetAll(args ...any) ([]*DevilFruit, Metadata, error) {
+	return nil, Metadata{}, nil
+}
 
 func IsValidType(devilFruitType string) bool {
 	if devilFruitType == "" {

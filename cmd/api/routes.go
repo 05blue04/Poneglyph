@@ -23,7 +23,10 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodDelete, "/v1/characters/:id", app.deleteCharacterHandler)
 
 	//devilfruit endpoints
-	router.HandlerFunc(http.MethodPost, "v1/devilfruits", app.createDevilFruitHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/devilfruits", app.createDevilFruitHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/devilfruits/:id", app.showDevilFruitHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/devilfruits/:id", app.updateDevilFruitHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/devilfruits/:id", app.deleteDevilFruitHandler)
 
 	return app.recoverPanic(app.logRequest(router))
 }

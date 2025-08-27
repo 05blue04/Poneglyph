@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS devilfruits(
     id bigserial PRIMARY KEY,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
@@ -9,3 +10,6 @@ CREATE TABLE IF NOT EXISTS devilfruits(
     previousOwners text[],
     episode int NOT NULL
 );
+
+-- +goose Down
+DROP TABLE IF EXISTS devilfruits;
