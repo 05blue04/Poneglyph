@@ -209,7 +209,7 @@ func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Req
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 
 	input.Filters.Sort = app.readString(qs, "sort", "id")
-	input.Filters.SortSafelist = []string{"id", "name", "age", "bounty", "race"}
+	input.Filters.SortSafelist = []string{"id", "name", "age", "bounty", "race", "-id", "-name", "-age", "-bounty", "-race"}
 
 	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)

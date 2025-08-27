@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -232,16 +234,21 @@ func (m CharacterModel) Delete(id int64) error {
 }
 
 func (m CharacterModel) GetAll(name string, age int, origin, race string, bounty Berries, timeSkip string, filters Filters) ([]*Character, error) {
-	query := `
+
+	bountyCondition := "(bounty >= $5 OR $5 = 0)"
+
+	if strings.Contains(filters.Sort, "bounty") {
+		bountyCondition = "(bounty >= $5 AND bounty > 0)"
+	}
+	query := fmt.Sprintf(`
 		SELECT id, created_at, name, age, description, origin, race, bounty, episode, time_skip
 		FROM characters
 		WHERE (to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		AND (LOWER(race) = LOWER($2) OR $2 = '')
 		AND (LOWER(time_skip) = LOWER($3) OR $3 = '')
 		AND (age >= $4 OR $4 = 0)
-		AND (bounty >= $5 OR $5 = 0)
-		ORDER BY id
-	`
+		AND %s
+		ORDER BY %s %s, id ASC`, bountyCondition, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
