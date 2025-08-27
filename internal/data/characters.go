@@ -235,7 +235,7 @@ func (m CharacterModel) GetAll(name string, age int, origin, race string, bounty
 	query := `
 		SELECT id, created_at, name, age, description, origin, race, bounty, episode, time_skip
 		FROM characters
-		WHERE (LOWER(name) = LOWER($1) OR $1 = '')
+		WHERE (to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		AND (LOWER(race) = LOWER($2) OR $2 = '')
 		AND (LOWER(time_skip) = LOWER($3) OR $3 = '')
 		AND (age >= $4 OR $4 = 0)
