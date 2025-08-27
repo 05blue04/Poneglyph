@@ -22,5 +22,8 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/characters/:id", app.updateCharacterHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/characters/:id", app.deleteCharacterHandler)
 
+	//devilfruit endpoints
+	router.HandlerFunc(http.MethodPost, "v1/devilfruits", app.createDevilFruitHandler)
+
 	return app.recoverPanic(app.logRequest(router))
 }

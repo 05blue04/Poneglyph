@@ -46,7 +46,7 @@ paths:
             example: "East Blue"
         - name: race
           in: query
-          description: Filter by character race (case-insensitive)
+          description: Filter by character race 
           required: false
           schema:
             type: string
@@ -62,7 +62,7 @@ paths:
             example: 100000000
         - name: time_skip
           in: query
-          description: Filter by time skip period (case-insensitive)
+          description: Filter by time skip period 
           required: false
           schema:
             type: string

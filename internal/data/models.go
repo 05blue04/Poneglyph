@@ -11,10 +11,12 @@ var (
 
 type Models struct {
 	Characters CharacterModel
+	DevilFruit DevilFruitModel
 }
 
 func NewModels(db *sql.DB) Models {
 	return Models{
 		Characters: CharacterModel{DB: db},
+		DevilFruit: DevilFruitModel{DB: db},
 	}
 }
