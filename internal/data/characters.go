@@ -106,6 +106,7 @@ func (m CharacterModel) Insert(character *Character) error {
 	query := `
 		INSERT INTO characters (name, age, description, origin, bounty, race, episode, time_skip)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id
 	`
 	var bounty sql.NullInt64
 	if character.Bounty != nil {
@@ -118,12 +119,7 @@ func (m CharacterModel) Insert(character *Character) error {
 
 	defer cancel()
 
-	_, err := m.DB.ExecContext(ctx, query, args...)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&character.ID)
 }
 
 func (m CharacterModel) Get(id int64) (*Character, error) {
