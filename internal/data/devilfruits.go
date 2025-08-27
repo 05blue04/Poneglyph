@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 	"unicode/utf8"
 
@@ -51,6 +52,14 @@ func ValidateDevilFruit(v *validator.Validator, devilFruit *DevilFruit) {
 	v.Check(IsValidType(devilFruit.Type), "type", "must be a valid devil fruit type")
 
 	//add previous owners validation
+	v.Check(len(devilFruit.PreviousOwners) <= 10, "previous_owners", "must not have more than 10 previous owners")
+	for i, owner := range devilFruit.PreviousOwners {
+		v.Check(owner != "", "previous_owners", fmt.Sprintf("owner at index %d must not be empty", i))
+		v.Check(len(owner) <= 200, "previous_owners", fmt.Sprintf("owner name at index %d must not be more than 200 characters", i))
+		v.Check(utf8.ValidString(owner), "previous_owners", fmt.Sprintf("owner name at index %d must be valid UTF-8", i))
+	}
+
+	v.Check(validator.Unique(devilFruit.PreviousOwners), "previous_owners", "must not contain duplicates")
 
 	//character_id validation
 	v.Check(devilFruit.Character_id >= 0, "character_id", "must be a positive integer")
