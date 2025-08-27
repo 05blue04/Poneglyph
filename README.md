@@ -2,6 +2,8 @@
 
 > ⚠️ **Note**: This project is currently in active development. Features and API endpoints may change frequently.
 
+A RESTful API for the One Piece universe built with Go and PostgreSQL. Explore characters, devil fruits, organizations, and locations with advanced search, filtering, and pagination capabilities.
+
 ## API Endpoints
 
 ### Characters
@@ -11,6 +13,16 @@
 - `PUT /characters/{id}` - Update an existing character
 - `DELETE /characters/{id}` - Delete a character
 
+#### Query Parameters for GET /v1/characters
+- `search` - Full-text search across character names and descriptions
+- `race` - Filter by character race (human, fishman, mink, giant, etc.)
+- `time_skip` - Filter by time period (pre, post)
+- `age` - Minimum age filter
+- `bounty` - Minimum bounty filter (e.g., "1B berries", "500M berries")
+- `sort` - Sort by field (id, name, age, bounty, race). Use `-` prefix for descending (e.g., `-bounty`)
+- `page` - Page number for pagination (default: 1)
+- `page_size` - Results per page (default: 20)
+
 ## TODO List
 
 ### High Priority
@@ -18,12 +30,6 @@
   - Unit tests for handlers
   - Integration tests for database operations
   - Test validation logic
-
-- [ ] **Implement GET /v1/characters endpoint with filtering and pagination**
-  - Add query parameters for filtering (race, organization, time_skip, bounty range, etc.)
-  - Implement pagination (limit, offset/cursor-based)
-  - Add sorting options (by name, age, bounty, episode)
-  - Support search by name/description
 
 - [ ] **Create Devil Fruits table and CRUD operations**
   - Design and implement devil_fruits table schema
@@ -57,6 +63,7 @@
 - [ ] Add authentication and authorization
 - [ ] Implement crew/organization relationships as separate entities
 - [ ] Add rate limiting
+- [ ] Add Docker containerization for easy deployment and development setup
 
 ## License
 
