@@ -2,32 +2,148 @@ openapi: 3.0.3
 info:
   title: Poneglyph API
   description: |
-    A comprehensive One Piece character database API. Track characters, their bounties, organizations, and story details from the world of One Piece.
+    A REST API for One Piece
     
-    ## Features
-    - Complete CRUD operations for One Piece characters
-    - Bounty tracking with custom Berries format (e.g., "1.5M berries")
-    - Organization and race validation
-    - Time skip era support (pre/post)
-    - Comprehensive character data including debut episodes
-    
+    **Bounty Format**: Bounties are represented as human-readable strings:
+    - `"100 berries"` for amounts under 1 million
+    - `"1.5M berries"` for millions 
+    - `"2.5B berries"` for billions
   version: 1.0.0
   contact:
     name: API Support
     url: https://github.com/05blue04/Poneglyph
-  license:
-    name: MIT
-servers:
-  - url: http://localhost:4000
-    description: Development server
-  - url: https://api.poneglyph.com
-    description: Production server
-
 paths:
-  /v1/characters:
+  /characters:
+    get:
+      summary: List characters
+      description: |
+        Retrieve a paginated list of characters with optional filtering and sorting.
+        Supports full-text search across character names and descriptions.
+      tags:
+        - Characters
+      parameters:
+        - name: search
+          in: query
+          description: Full-text search across character names and descriptions
+          required: false
+          schema:
+            type: string
+            example: "pirate king"
+        - name: age
+          in: query
+          description: Filter by minimum age (0 means no age filter)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            example: 18
+        - name: origin
+          in: query
+          description: Filter by character's origin location
+          required: false
+          schema:
+            type: string
+            example: "East Blue"
+        - name: race
+          in: query
+          description: Filter by character race (case-insensitive)
+          required: false
+          schema:
+            type: string
+            enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", "snakeneck tribe", "longarm tribe", "longleg tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
+            example: "human"
+        - name: bounty
+          in: query
+          description: Filter by minimum bounty amount (in raw berries, 0 means no bounty filter)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            example: 100000000
+        - name: time_skip
+          in: query
+          description: Filter by time skip period (case-insensitive)
+          required: false
+          schema:
+            type: string
+            enum: [pre, post]
+            example: "post"
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: page_size
+          in: query
+          description: Number of characters per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+        - name: sort
+          in: query
+          description: Sort field and direction
+          required: false
+          schema:
+            type: string
+            enum: [id, name, age, bounty, race, -id, -name, -age, -bounty, -race]
+            default: "id"
+            example: "-bounty"
+      responses:
+        '200':
+          description: Successfully retrieved characters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  characters:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Character'
+                  metadata:
+                    $ref: '#/components/schemas/Metadata'
+              example:
+                characters:
+                  - id: 1
+                    name: "Monkey D. Luffy"
+                    age: 19
+                    description: "Captain of the Straw Hat Pirates and aspiring Pirate King"
+                    origin: "East Blue"
+                    bounty: "3B berries"
+                    race: "human"
+                    episode: 1
+                    time_skip: "post"
+                  - id: 2
+                    name: "Roronoa Zoro"
+                    age: 21
+                    description: "First mate and swordsman of the Straw Hat Pirates"
+                    origin: "East Blue"
+                    bounty: "1.11B berries"
+                    race: "human"
+                    episode: 2
+                    time_skip: "post"
+                metadata:
+                  current_page: 1
+                  page_size: 20
+                  first_page: 1
+                  last_page: 5
+                  total_records: 100
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
     post:
       summary: Create a new character
-      description: Add a new One Piece character to the database
+      description: Add a new character to the database
       tags:
         - Characters
       requestBody:
@@ -36,31 +152,15 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCharacterRequest'
-            examples:
-              luffy:
-                summary: Monkey D. Luffy
-                value:
-                  name: "Monkey D. Luffy"
-                  age: 19
-                  description: "The main protagonist of One Piece, captain of the Straw Hat Pirates with the power of the Gomu Gomu no Mi"
-                  origin: "East Blue, Goa Kingdom"
-                  bounty: "3000000000"
-                  race: "human"
-                  organizations: ["pirates"]
-                  episode: 1
-                  time_skip: "post"
-              zoro:
-                summary: Roronoa Zoro
-                value:
-                  name: "Roronoa Zoro"
-                  age: 21
-                  description: "The first mate and swordsman of the Straw Hat Pirates, wielding three swords in his unique fighting style"
-                  origin: "East Blue, Shimotsuki Village"
-                  bounty: "1111000000"
-                  race: "human"
-                  organizations: ["pirates"]
-                  episode: 2
-                  time_skip: "post"
+            example:
+              name: "Monkey D. Luffy"
+              age: 17
+              description: "A young pirate with rubber powers who dreams of becoming the Pirate King"
+              origin: "Foosha Village, East Blue"
+              bounty: "30M berries"
+              race: "human"
+              episode: 1
+              time_skip: "pre"
       responses:
         '201':
           description: Character created successfully
@@ -69,7 +169,7 @@ paths:
               description: URL of the created character
               schema:
                 type: string
-                example: "/v1/characters/1"
+                example: "/v1/characters/123"
           content:
             application/json:
               schema:
@@ -77,37 +177,49 @@ paths:
                 properties:
                   character:
                     $ref: '#/components/schemas/Character'
+              example:
+                character:
+                  id: 123
+                  name: "Monkey D. Luffy"
+                  age: 17
+                  description: "A young pirate with rubber powers who dreams of becoming the Pirate King"
+                  origin: "Foosha Village, East Blue"
+                  bounty: "30M berries"
+                  race: "human"
+                  episode: 1
+                  time_skip: "pre"
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/ServerError'
 
-  /v1/characters/{id}:
+  /characters/{id}:
     get:
       summary: Get character by ID
-      description: Retrieve a specific character by their unique ID
+      description: Retrieve a specific character by their ID
       tags:
         - Characters
       parameters:
         - name: id
           in: path
           required: true
-          description: Unique identifier for the character
+          description: Character ID
           schema:
             type: integer
             format: int64
             minimum: 1
-          example: 1
+            example: 123
       responses:
         '200':
-          description: Character retrieved successfully
+          description: Character found
           headers:
             Location:
               description: URL of the character
               schema:
                 type: string
+                example: "/v1/characters/123"
           content:
             application/json:
               schema:
@@ -115,45 +227,49 @@ paths:
                 properties:
                   character:
                     $ref: '#/components/schemas/Character'
+              example:
+                character:
+                  id: 123
+                  name: "Monkey D. Luffy"
+                  age: 19
+                  description: "Captain of the Straw Hat Pirates with rubber powers"
+                  origin: "Foosha Village, East Blue"
+                  bounty: "3B berries"
+                  race: "human"
+                  episode: 1
+                  time_skip: "post"
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/ServerError'
 
-    patch:
+    put:
       summary: Update character
       description: |
-        Partially update a character. Only provided fields will be updated.
-        All fields are optional in the request body.
+        Update an existing character. All fields are optional - only provided 
+        fields will be updated. Partial updates are supported.
       tags:
         - Characters
       parameters:
         - name: id
           in: path
           required: true
-          description: Unique identifier for the character
+          description: Character ID
           schema:
             type: integer
             format: int64
             minimum: 1
+            example: 123
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateCharacterRequest'
-            examples:
-              bounty_update:
-                summary: Update bounty only
-                value:
-                  bounty: "4000000000"
-              full_update:
-                summary: Update multiple fields
-                value:
-                  name: "Monkey D. Luffy"
-                  age: 20
-                  bounty: "4000000000"
-                  organizations: ["pirates", "four emperors"]
+            example:
+              age: 19
+              bounty: "3B berries"
+              time_skip: "post"
       responses:
         '200':
           description: Character updated successfully
@@ -164,6 +280,17 @@ paths:
                 properties:
                   character:
                     $ref: '#/components/schemas/Character'
+              example:
+                character:
+                  id: 123
+                  name: "Monkey D. Luffy"
+                  age: 19
+                  description: "Captain of the Straw Hat Pirates with rubber powers"
+                  origin: "Foosha Village, East Blue"
+                  bounty: "3B berries"
+                  race: "human"
+                  episode: 1
+                  time_skip: "post"
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -171,22 +298,23 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/ServerError'
 
     delete:
       summary: Delete character
-      description: Remove a character from the database
+      description: Delete a character from the database
       tags:
         - Characters
       parameters:
         - name: id
           in: path
           required: true
-          description: Unique identifier for the character
+          description: Character ID
           schema:
             type: integer
             format: int64
             minimum: 1
+            example: 123
       responses:
         '200':
           description: Character deleted successfully
@@ -201,104 +329,12 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/ServerError'
 
 components:
   schemas:
     Character:
       type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: Unique identifier for the character
-          example: 1
-        name:
-          type: string
-          description: Full name of the character
-          example: "Monkey D. Luffy"
-        age:
-          type: integer
-          description: Current age of the character
-          minimum: 1
-          example: 19
-        description:
-          type: string
-          description: Detailed description of the character
-          minLength: 10
-          maxLength: 2000
-          example: "The main protagonist of One Piece, captain of the Straw Hat Pirates"
-        origin:
-          type: string
-          description: Character's place of origin
-          maxLength: 200
-          example: "East Blue, Goa Kingdom"
-        bounty:
-          type: string
-          description: |
-            Character's bounty in berries. Supports formats like:
-            - "1500000000" (raw number)
-            - "1.5B berries"
-            - "30M berries" 
-            - "100 berries"
-          example: "3000000000"
-          nullable: true
-        race:
-          type: string
-          description: Character's race/species
-          enum:
-            - human
-            - fishman
-            - merman
-            - giant
-            - dwarf
-            - mink
-            - lunarian
-            - buccaneer
-            - long arm tribe
-            - long leg tribe
-            - snake neck tribe
-            - three-eye tribe
-            - snakeneck tribe
-            - longarm tribe
-            - longleg tribe
-            - tontatta
-            - kuja
-            - skypiean
-            - shandian
-            - birkan
-            - cyborg
-            - zombie
-            - artificial human
-            - reindeer
-            - skeleton
-          example: "human"
-        organization:
-          type: array
-          description: Organizations the character belongs to
-          items:
-            type: string
-            enum:
-              - marines
-              - pirates
-              - seven warlords of the sea
-              - world government
-              - four emperors
-              - revolutionary army
-              - celestial dragons
-          example: ["pirates"]
-          nullable: true
-        episode:
-          type: integer
-          description: Episode number where character first appeared
-          minimum: 1
-          maximum: 1200
-          example: 1
-        time_skip:
-          type: string
-          description: Which era of the story (before or after the 2-year time skip)
-          enum: [pre, post]
-          example: "post"
       required:
         - id
         - name
@@ -308,91 +344,62 @@ components:
         - race
         - episode
         - time_skip
-
-    CreateCharacterRequest:
-      type: object
       properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier for the character
+          example: 123
         name:
           type: string
-          description: Full name of the character
           maxLength: 300
+          description: Character's full name
           example: "Monkey D. Luffy"
         age:
           type: integer
-          description: Current age of the character
           minimum: 1
+          description: Character's age in years
           example: 19
         description:
           type: string
-          description: Detailed description of the character
           minLength: 10
           maxLength: 2000
-          example: "The main protagonist of One Piece, captain of the Straw Hat Pirates"
+          description: Character description and background
+          example: "Captain of the Straw Hat Pirates with rubber powers who dreams of becoming the Pirate King"
         origin:
           type: string
-          description: Character's place of origin
           maxLength: 200
-          example: "East Blue, Goa Kingdom"
+          description: Character's place of origin
+          example: "Foosha Village, East Blue"
         bounty:
           type: string
-          description: Character's bounty in berries (optional)
-          example: "3000000000"
+          description: |
+            Character's bounty in berries. Format examples:
+            - "100 berries" (under 1 million)
+            - "1.5M berries" (millions)
+            - "2.5B berries" (billions)
+            - null for characters without bounties
           nullable: true
+          example: "3B berries"
         race:
           type: string
-          description: Character's race/species
-          enum:
-            - human
-            - fishman
-            - merman
-            - giant
-            - dwarf
-            - mink
-            - lunarian
-            - buccaneer
-            - long arm tribe
-            - long leg tribe
-            - snake neck tribe
-            - three-eye tribe
-            - snakeneck tribe
-            - longarm tribe
-            - longleg tribe
-            - tontatta
-            - kuja
-            - skypiean
-            - shandian
-            - birkan
-            - cyborg
-            - zombie
-            - artificial human
-            - reindeer
-            - skeleton
+          description: Character's race or species
+          enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", "snakeneck tribe", "longarm tribe", "longleg tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
           example: "human"
-        organizations:
-          type: array
-          description: Organizations the character belongs to (optional)
-          items:
-            type: string
-            enum:
-              - marines
-              - pirates
-              - seven warlords of the sea
-              - world government
-              - four emperors
-              - revolutionary army
-              - celestial dragons
-          example: ["pirates"]
         episode:
           type: integer
-          description: Episode number where character first appeared
           minimum: 1
           maximum: 1200
+          description: Episode number where character first appeared
           example: 1
         time_skip:
           type: string
-          description: Which era of the story (before or after the 2-year time skip)
           enum: [pre, post]
+          description: Whether character data is from pre or post time-skip
           example: "post"
+
+    CreateCharacterRequest:
+      type: object
       required:
         - name
         - age
@@ -401,6 +408,53 @@ components:
         - race
         - episode
         - time_skip
+      properties:
+        name:
+          type: string
+          maxLength: 300
+          description: Character's full name
+          example: "Monkey D. Luffy"
+        age:
+          type: integer
+          minimum: 1
+          description: Character's age in years
+          example: 17
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Character description and background
+          example: "A young pirate with rubber powers who dreams of becoming the Pirate King"
+        origin:
+          type: string
+          maxLength: 200
+          description: Character's place of origin
+          example: "Foosha Village, East Blue"
+        bounty:
+          type: string
+          description: |
+            Character's bounty in berries (optional). Format examples:
+            - "100 berries" (under 1 million)
+            - "1.5M berries" (millions)
+            - "2.5B berries" (billions)
+          nullable: true
+          example: "30M berries"
+        race:
+          type: string
+          description: Character's race or species (case will be normalized to lowercase)
+          enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", "snakeneck tribe", "longarm tribe", "longleg tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
+          example: "Human"
+        episode:
+          type: integer
+          minimum: 1
+          maximum: 1200
+          description: Episode number where character first appeared
+          example: 1
+        time_skip:
+          type: string
+          enum: [pre, post, Pre, Post]
+          description: Whether character data is from pre or post time-skip (case will be normalized to lowercase)
+          example: "Pre"
 
     UpdateCharacterRequest:
       type: object
@@ -408,110 +462,92 @@ components:
       properties:
         name:
           type: string
-          description: Full name of the character
           maxLength: 300
+          description: Character's full name
           example: "Monkey D. Luffy"
-          nullable: true
         age:
           type: integer
-          description: Current age of the character
           minimum: 1
-          example: 20
-          nullable: true
+          description: Character's age in years
+          example: 19
         description:
           type: string
-          description: Detailed description of the character
           minLength: 10
           maxLength: 2000
-          example: "Updated description of the character"
-          nullable: true
+          description: Character description and background
+          example: "Captain of the Straw Hat Pirates with rubber powers"
         origin:
           type: string
-          description: Character's place of origin
           maxLength: 200
-          example: "East Blue, Goa Kingdom"
-          nullable: true
+          description: Character's place of origin
+          example: "Foosha Village, East Blue"
         bounty:
           type: string
-          description: Character's bounty in berries
-          example: "4000000000"
+          description: |
+            Character's bounty in berries. Format examples:
+            - "100 berries" (under 1 million)
+            - "1.5M berries" (millions)
+            - "2.5B berries" (billions)
           nullable: true
+          example: "3B berries"
         race:
           type: string
-          description: Character's race/species
-          enum:
-            - human
-            - fishman
-            - merman
-            - giant
-            - dwarf
-            - mink
-            - lunarian
-            - buccaneer
-            - long arm tribe
-            - long leg tribe
-            - snake neck tribe
-            - three-eye tribe
-            - snakeneck tribe
-            - longarm tribe
-            - longleg tribe
-            - tontatta
-            - kuja
-            - skypiean
-            - shandian
-            - birkan
-            - cyborg
-            - zombie
-            - artificial human
-            - reindeer
-            - skeleton
+          description: Character's race or species (case will be normalized to lowercase)
+          enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", "snakeneck tribe", "longarm tribe", "longleg tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
           example: "human"
-          nullable: true
-        organizations:
-          type: array
-          description: Organizations the character belongs to
-          items:
-            type: string
-            enum:
-              - marines
-              - pirates
-              - seven warlords of the sea
-              - world government
-              - four emperors
-              - revolutionary army
-              - celestial dragons
-          example: ["pirates", "four emperors"]
-          nullable: true
         episode:
           type: integer
-          description: Episode number where character first appeared
           minimum: 1
           maximum: 1200
+          description: Episode number where character first appeared
           example: 1
-          nullable: true
         time_skip:
           type: string
-          description: Which era of the story
-          enum: [pre, post]
+          enum: [pre, post, Pre, Post]
+          description: Whether character data is from pre or post time-skip (case will be normalized to lowercase)
           example: "post"
-          nullable: true
 
-    ErrorResponse:
+    Metadata:
+      type: object
+      description: Pagination metadata
+      properties:
+        current_page:
+          type: integer
+          description: Current page number
+          example: 1
+        page_size:
+          type: integer
+          description: Number of items per page
+          example: 20
+        first_page:
+          type: integer
+          description: First page number (always 1)
+          example: 1
+        last_page:
+          type: integer
+          description: Last page number
+          example: 5
+        total_records:
+          type: integer
+          description: Total number of records matching the query
+          example: 100
+
+    Error:
       type: object
       properties:
         error:
           type: string
           description: Error message
-          example: "the request could not be processed"
+          example: "the requested resource could not be found"
 
-    ValidationErrorResponse:
+    ValidationError:
       type: object
       properties:
         error:
           type: object
-          description: Map of field names to validation error messages
           additionalProperties:
             type: string
+          description: Validation errors keyed by field name
           example:
             name: "must be provided"
             age: "must be a positive integer"
@@ -523,16 +559,16 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/Error'
           example:
-            error: "invalid JSON in request body"
+            error: "invalid JSON format"
 
     NotFound:
-      description: Resource not found
+      description: The requested resource was not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/Error'
           example:
             error: "the requested resource could not be found"
 
@@ -541,32 +577,23 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ValidationErrorResponse'
+            $ref: '#/components/schemas/ValidationError'
           example:
             error:
               name: "must be provided"
               age: "must be a positive integer"
               bounty: "must not be negative"
+              race: "must be a valid One Piece race"
+              time_skip: "must be either pre or post"
 
-    InternalServerError:
+    ServerError:
       description: Internal server error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/Error'
           example:
-            error: "the server encountered a problem and could not process your request"
-
-  parameters:
-    CharacterID:
-      name: id
-      in: path
-      required: true
-      description: Unique identifier for the character
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
+            error: "internal server error"
 
 tags:
   - name: Characters
