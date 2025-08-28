@@ -17,7 +17,7 @@ type Crew struct {
 	Description string    `json:"description"`
 	ShipName    string    `json:"ship_name"`
 	CaptainID   int64     `json:"captain_id"`
-	TotalBounty *Berries  `json:"total_bounty"`
+	TotalBounty Berries   `json:"total_bounty"`
 	Episode     int       `json:"episode"`
 	TimeSkip    string    `json:"time_skip"`
 }

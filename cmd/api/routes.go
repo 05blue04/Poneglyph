@@ -28,5 +28,11 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/devilfruits/:id", app.updateDevilFruitHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/devilfruits/:id", app.deleteDevilFruitHandler)
 
+	//crew endpoints
+	router.HandlerFunc(http.MethodPost, "/v1/crews", app.createCrewHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/crews/:id", app.showCrewHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/crews/:id", app.updateCrewHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/crews/:id", app.deleteCrewHandler)
+
 	return app.recoverPanic(app.logRequest(router))
 }
