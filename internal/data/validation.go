@@ -40,10 +40,10 @@ var validTypes = map[string]struct{}{
 	"logia":     {},
 }
 
-func validateName(v *validator.Validator, name string) {
-	v.Check(name != "", "name", "must be provided")
-	v.Check(len(name) < 300, "name", "must not be more than 300 bytes long")
-	v.Check(utf8.ValidString(name), "name", "must be valid UTF-8")
+func validateName(v *validator.Validator, key, name string) {
+	v.Check(name != "", key, "must be provided")
+	v.Check(len(name) < 300, key, "must not be more than 300 bytes long")
+	v.Check(utf8.ValidString(name), key, "must be valid UTF-8")
 }
 
 func validateDescription(v *validator.Validator, description string) {
@@ -62,6 +62,12 @@ func validateEpisode(v *validator.Validator, episode int) {
 func validateTimeSkip(v *validator.Validator, timeSkip string) {
 	v.Check(timeSkip != "", "time_skip", "must be provided")
 	v.Check(isValidTimeSkip(timeSkip), "time_skip", "must be either pre or post")
+}
+
+func validateBounty(v *validator.Validator, bounty Berries) {
+	v.Check(bounty >= 0, "bounty", "must not be negative")
+	v.Check(bounty <= 10000000000, "bounty", "must not exceed 10B berries")
+	v.Check(bounty >= 100, "bounty", "active bounties should be at least 100 berries")
 }
 
 func IsValidRace(race string) bool {
