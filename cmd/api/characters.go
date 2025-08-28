@@ -141,6 +141,13 @@ func (app *application) updateCharacterHandler(w http.ResponseWriter, r *http.Re
 		character.Bounty = input.Bounty
 	}
 
+	v := validator.New()
+
+	if data.ValidateCharacter(v, character); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
 	err = app.models.Characters.Update(character)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

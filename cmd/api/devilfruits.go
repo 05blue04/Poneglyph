@@ -125,6 +125,13 @@ func (app *application) updateDevilFruitHandler(w http.ResponseWriter, r *http.R
 		devilFruit.PreviousOwners = input.PreviousOwners
 	}
 
+	v := validator.New()
+
+	if data.ValidateDevilFruit(v, devilFruit); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
 	err = app.models.DevilFruit.Update(devilFruit)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
