@@ -59,26 +59,17 @@ type CharacterModel struct {
 }
 
 func ValidateCharacter(v *validator.Validator, character *Character) {
-	//Name validation
-	v.Check(character.Name != "", "name", "must be provided")
-	v.Check(len(character.Name) < 300, "name", "must not be more than 300 bytes long")
-	v.Check(utf8.ValidString(character.Name), "name", "must be valid UTF-8")
 
-	//Age validation
+	validateName(v, character.Name)
+
 	v.Check(character.Age > 0, "age", "must be a positive integer")
 	v.Check(character.Age != 0, "age", "must be provided")
 
-	// Description validation
-	v.Check(character.Description != "", "description", "must be provided")
-	v.Check(len(character.Description) >= 10, "description", "must be at least 10 characters long")
-	v.Check(len(character.Description) <= 2000, "description", "must not be more than 2000 characters long")
-	v.Check(utf8.ValidString(character.Description), "description", "must be valid UTF-8")
+	validateDescription(v, character.Description)
 
-	// Origin validation
 	v.Check(character.Origin != "", "origin", "must be provided")
 	v.Check(len(character.Origin) <= 200, "origin", "must not be more than 200 characters long")
 	v.Check(utf8.ValidString(character.Origin), "origin", "must be valid UTF-8")
-	// potentially enforce origin creation to ensure the origin is an actual place in OP world
 
 	//bounty validation
 	if character.Bounty != nil {
@@ -91,14 +82,8 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 	v.Check(character.Race != "", "race", "must be provided")
 	v.Check(IsValidRace(character.Race), "race", "must be a valid One Piece race")
 
-	//episode validation
-	v.Check(character.Episode != 0, "episode", "must be provided")
-	v.Check(character.Episode <= 1200, "episode", "must not be greater than 1200")
-	v.Check(character.Episode > 0, "episode", "must not be negative")
-
-	//time skip validationa
-	v.Check(character.TimeSkip != "", "time_skip", "must be provided")
-	v.Check(isValidTimeSkip(character.TimeSkip), "time_skip", "must be either pre or post")
+	validateEpisode(v, character.Episode)
+	validateTimeSkip(v, character.TimeSkip)
 
 }
 

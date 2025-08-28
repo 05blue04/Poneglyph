@@ -36,18 +36,10 @@ var validTypes = map[string]struct{}{
 
 func ValidateDevilFruit(v *validator.Validator, devilFruit *DevilFruit) {
 
-	//name validation
-	v.Check(devilFruit.Name != "", "name", "must be provided")
-	v.Check(len(devilFruit.Name) < 300, "name", "must not be more than 300 bytes long")
-	v.Check(utf8.ValidString(devilFruit.Name), "name", "must be valid UTF-8")
-
-	//description validation
-	v.Check(devilFruit.Description != "", "description", "must be provided")
-	v.Check(len(devilFruit.Description) >= 10, "description", "must be at least 10 characters long")
-	v.Check(len(devilFruit.Description) <= 2000, "description", "must not be more than 2000 characters long")
-	v.Check(utf8.ValidString(devilFruit.Description), "description", "must be valid UTF-8")
-
+	validateName(v, devilFruit.Name)
+	validateDescription(v, devilFruit.Description)
 	//devilfruit type validation
+
 	v.Check(devilFruit.Type != "", "type", "must be provided")
 	v.Check(IsValidType(devilFruit.Type), "type", "must be a valid devil fruit type")
 
@@ -64,10 +56,8 @@ func ValidateDevilFruit(v *validator.Validator, devilFruit *DevilFruit) {
 	//character_id validation
 	v.Check(devilFruit.Character_id >= 0, "character_id", "must be a positive integer")
 
-	//episode validation
-	v.Check(devilFruit.Episode != 0, "episode", "must be provided")
-	v.Check(devilFruit.Episode <= 1200, "episode", "must not be greater than 1200")
-	v.Check(devilFruit.Episode > 0, "episode", "must not be negative")
+	validateEpisode(v, devilFruit.Episode)
+
 }
 
 func (m DevilFruitModel) Insert(devilFruit *DevilFruit) error {
