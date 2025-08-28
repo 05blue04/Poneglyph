@@ -26,34 +26,6 @@ type Character struct {
 	TimeSkip    string    `json:"time_skip"`
 }
 
-var validRaces = map[string]struct{}{
-	"human":            {},
-	"fishman":          {},
-	"merman":           {},
-	"giant":            {},
-	"dwarf":            {},
-	"mink":             {},
-	"lunarian":         {},
-	"buccaneer":        {},
-	"long arm tribe":   {},
-	"long leg tribe":   {},
-	"snake neck tribe": {},
-	"three-eye tribe":  {},
-	"snakeneck tribe":  {},
-	"longarm tribe":    {},
-	"longleg tribe":    {},
-	"tontatta":         {},
-	"kuja":             {},
-	"skypiean":         {},
-	"shandian":         {},
-	"birkan":           {},
-	"cyborg":           {},
-	"zombie":           {},
-	"artificial human": {},
-	"reindeer":         {}, // For Chopper
-	"skeleton":         {}, // For Brook
-}
-
 type CharacterModel struct {
 	DB *sql.DB
 }
@@ -277,36 +249,4 @@ func (m CharacterModel) GetAll(search string, age int, origin, race string, boun
 
 	return characters, metadata, nil
 
-}
-
-// IsValidRace checks if the provided race is a valid One Piece race
-func IsValidRace(race string) bool {
-	if race == "" {
-		return false
-	}
-
-	_, exists := validRaces[race]
-	return exists
-}
-
-// GetValidRaces returns a slice of all valid races (for API documentation, etc.)
-func GetValidRaces() []string {
-	races := make([]string, 0, len(validRaces))
-	for race := range validRaces {
-		// Capitalize first letter for display
-		races = append(races, race)
-	}
-	return races
-}
-
-func isValidTimeSkip(timeSkip string) bool {
-	if timeSkip == "pre" {
-		return true
-	}
-
-	if timeSkip == "post" {
-		return true
-	}
-
-	return false
 }
