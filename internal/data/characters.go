@@ -32,7 +32,7 @@ type CharacterModel struct {
 
 func ValidateCharacter(v *validator.Validator, character *Character) {
 
-	validateName(v, character.Name)
+	validateName(v, "name", character.Name)
 
 	v.Check(character.Age > 0, "age", "must be a positive integer")
 	v.Check(character.Age != 0, "age", "must be provided")
@@ -45,9 +45,7 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 
 	//bounty validation
 	if character.Bounty != nil {
-		v.Check(*character.Bounty >= 0, "bounty", "must not be negative")
-		v.Check(*character.Bounty <= 10000000000, "bounty", "must not exceed 10B berries")
-		v.Check(*character.Bounty >= 100, "bounty", "active bounties should be at least 100 berries")
+		validateBounty(v, *character.Bounty)
 	}
 
 	//race validation
@@ -156,34 +154,7 @@ func (m CharacterModel) Update(character *Character) error {
 }
 
 func (m CharacterModel) Delete(id int64) error {
-	if id < 1 {
-		return ErrRecordNotFound
-	}
-
-	query := `
-		DELETE FROM characters
-		WHERE id = $1
-	`
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
-
-	defer cancel()
-
-	result, err := m.DB.ExecContext(ctx, query, id)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return ErrRecordNotFound
-	}
-
-	return nil
+	return deleteRecord(m.DB, "characters", id)
 }
 
 func (m CharacterModel) GetAll(search string, age int, origin, race string, bounty Berries, timeSkip string, filters Filters) ([]*Character, Metadata, error) {

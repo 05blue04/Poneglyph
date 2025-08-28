@@ -30,7 +30,7 @@ type DevilFruitModel struct {
 
 func ValidateDevilFruit(v *validator.Validator, devilFruit *DevilFruit) {
 
-	validateName(v, devilFruit.Name)
+	validateName(v, "name", devilFruit.Name)
 	validateDescription(v, devilFruit.Description)
 
 	v.Check(devilFruit.Type != "", "type", "must be provided")
