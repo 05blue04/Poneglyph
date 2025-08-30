@@ -331,6 +331,182 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /devilfruits:
+    post:
+      summary: Create a new Devil Fruit
+      description: Add a new Devil Fruit to the database
+      tags:
+        - Devil Fruits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDevilFruitRequest'
+            example:
+              name: "Mera Mera no Mi"
+              description: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+              type: "logia"
+              character_id: 456
+              previous_owners: ["Portgas D. Ace"]
+              episode: 94
+      responses:
+        '201':
+          description: Devil Fruit created successfully
+          headers:
+            Location:
+              description: URL of the created Devil Fruit
+              schema:
+                type: string
+                example: "/v1/devilfruits/789"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devilfruit:
+                    $ref: '#/components/schemas/DevilFruit'
+              example:
+                devilfruit:
+                  id: 789
+                  name: "Mera Mera no Mi"
+                  description: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+                  type: "logia"
+                  character_id: 456
+                  previous_owners: ["Portgas D. Ace"]
+                  episode: 94
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /devilfruits/{id}:
+    get:
+      summary: Get Devil Fruit by ID
+      description: Retrieve a specific Devil Fruit by its ID
+      tags:
+        - Devil Fruits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Devil Fruit ID
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            example: 789
+      responses:
+        '200':
+          description: Devil Fruit found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devilfruit:
+                    $ref: '#/components/schemas/DevilFruit'
+              example:
+                devilfruit:
+                  id: 789
+                  name: "Mera Mera no Mi"
+                  description: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+                  type: "logia"
+                  character_id: 456
+                  previous_owners: ["Portgas D. Ace"]
+                  episode: 94
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      summary: Update Devil Fruit
+      description: |
+        Update an existing Devil Fruit. All fields are optional - only provided 
+        fields will be updated. Partial updates are supported.
+      tags:
+        - Devil Fruits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Devil Fruit ID
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            example: 789
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDevilFruitRequest'
+            example:
+              character_id: 999
+              previous_owners: ["Portgas D. Ace"]
+      responses:
+        '200':
+          description: Devil Fruit updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devilfruit:
+                    $ref: '#/components/schemas/DevilFruit'
+              example:
+                devilfruit:
+                  id: 789
+                  name: "Mera Mera no Mi"
+                  description: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+                  type: "logia"
+                  character_id: 999
+                  previous_owners: ["Portgas D. Ace"]
+                  episode: 94
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      summary: Delete Devil Fruit
+      description: Delete a Devil Fruit from the database
+      tags:
+        - Devil Fruits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Devil Fruit ID
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            example: 789
+      responses:
+        '200':
+          description: Devil Fruit deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "devilfruit successfully deleted"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
 components:
   schemas:
     Character:
@@ -507,6 +683,146 @@ components:
           description: Whether character data is from pre or post time-skip (case will be normalized to lowercase)
           example: "post"
 
+    DevilFruit:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - type
+        - character_id
+        - previous_owners
+        - episode
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier for the Devil Fruit
+          example: 789
+        name:
+          type: string
+          maxLength: 300
+          description: Devil Fruit's name
+          example: "Mera Mera no Mi"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Devil Fruit description and abilities
+          example: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+        type:
+          type: string
+          description: Type of Devil Fruit
+          enum: [zoan, paramecia, logia]
+          example: "logia"
+        character_id:
+          type: integer
+          format: int64
+          minimum: 0
+          description: ID of the character who currently owns this Devil Fruit (0 if unowned)
+          example: 456
+        previous_owners:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 10
+          description: Array of previous owners' names
+          example: ["Portgas D. Ace"]
+        episode:
+          type: integer
+          minimum: 1
+          maximum: 1200
+          description: Episode number where Devil Fruit first appeared
+          example: 94
+
+    CreateDevilFruitRequest:
+      type: object
+      required:
+        - name
+        - description
+        - type
+        - character_id
+        - episode
+      properties:
+        name:
+          type: string
+          maxLength: 300
+          description: Devil Fruit's name
+          example: "Mera Mera no Mi"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Devil Fruit description and abilities
+          example: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+        type:
+          type: string
+          description: Type of Devil Fruit (case will be normalized to lowercase)
+          enum: [zoan, paramecia, logia, Zoan, Paramecia, Logia]
+          example: "Logia"
+        character_id:
+          type: integer
+          format: int64
+          minimum: 0
+          description: ID of the character who currently owns this Devil Fruit (0 if unowned)
+          example: 456
+        previous_owners:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 10
+          description: Array of previous owners' names (optional)
+          example: ["Portgas D. Ace"]
+        episode:
+          type: integer
+          minimum: 1
+          maximum: 1200
+          description: Episode number where Devil Fruit first appeared
+          example: 94
+
+    UpdateDevilFruitRequest:
+      type: object
+      description: All fields are optional for partial updates
+      properties:
+        name:
+          type: string
+          maxLength: 300
+          description: Devil Fruit's name
+          example: "Mera Mera no Mi"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Devil Fruit description and abilities
+          example: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+        type:
+          type: string
+          description: Type of Devil Fruit (case will be normalized to lowercase)
+          enum: [zoan, paramecia, logia, Zoan, Paramecia, Logia]
+          example: "logia"
+        character_id:
+          type: integer
+          format: int64
+          minimum: 0
+          description: ID of the character who currently owns this Devil Fruit (0 if unowned)
+          example: 999
+        previous_owners:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 10
+          description: Array of previous owners' names
+          example: ["Portgas D. Ace"]
+        episode:
+          type: integer
+          minimum: 1
+          maximum: 1200
+          description: Episode number where Devil Fruit first appeared
+          example: 94
+
     Metadata:
       type: object
       description: Pagination metadata
@@ -581,10 +897,10 @@ components:
           example:
             error:
               name: "must be provided"
-              age: "must be a positive integer"
-              bounty: "must not be negative"
-              race: "must be a valid One Piece race"
-              time_skip: "must be either pre or post"
+              type: "must be a valid devil fruit type"
+              character_id: "must be a positive integer"
+              episode: "must be provided"
+              previous_owners: "must not contain duplicates"
 
     ServerError:
       description: Internal server error
@@ -598,3 +914,5 @@ components:
 tags:
   - name: Characters
     description: Operations for managing One Piece characters
+  - name: Devil Fruits
+    description: Operations for managing One Piece Devil Fruits
