@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS crew_members (
     role text,
     episode int NOT NULL,
     PRIMARY KEY (character_id, crew_id)
-)
+);
 
 -- +goose Down
 DROP TABLE IF EXISTS crews;

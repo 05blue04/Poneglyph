@@ -169,3 +169,39 @@ func (app *application) deleteDevilFruitHandler(w http.ResponseWriter, r *http.R
 	}
 
 }
+
+func (app *application) listDevilFruitsHanlder(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Search  string
+		Type    string
+		Episode int
+		data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Search = app.readString(qs, "search", "")
+	input.Type = app.readString(qs, "type", "")
+	input.Episode = app.readInt(qs, "episode", 0, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	devilFruits, metadata, err := app.models.DevilFruit.GetAll(input.Search, input.Type, input.Episode, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"devil_fruits": devilFruits, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+}

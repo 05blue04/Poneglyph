@@ -159,6 +159,58 @@ func (m DevilFruitModel) Delete(id int64) error {
 	return nil
 }
 
-func (m DevilFruitModel) GetAll(args ...any) ([]*DevilFruit, Metadata, error) {
-	return nil, Metadata{}, nil
+func (m DevilFruitModel) GetAll(search, fruitType string, episode int, filters Filters) ([]*DevilFruit, Metadata, error) {
+
+	query := fmt.Sprintf(`
+		SELECT COUNT(*) OVER(), id, created_at, name, description, type, character_id, ,previousOwners, episode 
+		FROM devilfruits
+		WHERE (to_tsvector('english', name || ' ' || description) @@ plainto_tsquery('english', $1) OR $1 = '')
+		AND (LOWER(type) = LOWER($2) OR $2 = '')
+		AND (episode >= $3 OR $3 = 0)
+		ORDER BY %s %s, id ASC
+		LIMIT $4 OFFSET $5`, filters.sortColumn(), filters.sortDirection())
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, search, fruitType, episode, filters.limit(), filters.offset())
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+
+	//ensure that the resultset is closed before GetAll() returns.
+	defer rows.Close()
+
+	devilFruits := []*DevilFruit{}
+	totalRecords := 0
+
+	for rows.Next() {
+		var devilFruit DevilFruit
+
+		err := rows.Scan(
+			&totalRecords,
+			&devilFruit.ID,
+			&devilFruit.CreatedAt,
+			&devilFruit.Name,
+			&devilFruit.Description,
+			&devilFruit.Type,
+			&devilFruit.Character_id,
+			pq.Array(&devilFruit.PreviousOwners),
+			&devilFruit.Episode,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+
+		devilFruits = append(devilFruits, &devilFruit)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return devilFruits, metadata, nil
+
 }
