@@ -159,21 +159,20 @@ func (m DevilFruitModel) Delete(id int64) error {
 	return nil
 }
 
-func (m DevilFruitModel) GetAll(search, fruitType string, episode int, filters Filters) ([]*DevilFruit, Metadata, error) {
+func (m DevilFruitModel) GetAll(search, fruitType string, filters Filters) ([]*DevilFruit, Metadata, error) {
 
 	query := fmt.Sprintf(`
 		SELECT COUNT(*) OVER(), id, created_at, name, description, type, character_id, ,previousOwners, episode 
 		FROM devilfruits
 		WHERE (to_tsvector('english', name || ' ' || description) @@ plainto_tsquery('english', $1) OR $1 = '')
 		AND (LOWER(type) = LOWER($2) OR $2 = '')
-		AND (episode >= $3 OR $3 = 0)
 		ORDER BY %s %s, id ASC
 		LIMIT $4 OFFSET $5`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query, search, fruitType, episode, filters.limit(), filters.offset())
+	rows, err := m.DB.QueryContext(ctx, query, search, fruitType, filters.limit(), filters.offset())
 	if err != nil {
 		return nil, Metadata{}, err
 	}

@@ -172,9 +172,8 @@ func (app *application) deleteDevilFruitHandler(w http.ResponseWriter, r *http.R
 
 func (app *application) listDevilFruitsHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Search  string
-		Type    string
-		Episode int
+		Search string
+		Type   string
 		data.Filters
 	}
 
@@ -184,7 +183,6 @@ func (app *application) listDevilFruitsHandler(w http.ResponseWriter, r *http.Re
 
 	input.Search = app.readString(qs, "search", "")
 	input.Type = app.readString(qs, "type", "")
-	input.Episode = app.readInt(qs, "episode", 0, v)
 	input.Filters.Sort = app.readString(qs, "sort", "id")
 	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name"}
 
@@ -193,7 +191,7 @@ func (app *application) listDevilFruitsHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	devilFruits, metadata, err := app.models.DevilFruit.GetAll(input.Search, input.Type, input.Episode, input.Filters)
+	devilFruits, metadata, err := app.models.DevilFruit.GetAll(input.Search, input.Type, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
