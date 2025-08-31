@@ -25,6 +25,7 @@ func (app *application) routes() http.Handler {
 	//devilfruit endpoints
 	router.HandlerFunc(http.MethodPost, "/v1/devilfruits", app.createDevilFruitHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/devilfruits/:id", app.showDevilFruitHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/devilfruits", app.listDevilFruitsHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/devilfruits/:id", app.updateDevilFruitHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/devilfruits/:id", app.deleteDevilFruitHandler)
 

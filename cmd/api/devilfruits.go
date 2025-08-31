@@ -170,7 +170,7 @@ func (app *application) deleteDevilFruitHandler(w http.ResponseWriter, r *http.R
 
 }
 
-func (app *application) listDevilFruitsHanlder(w http.ResponseWriter, r *http.Request) {
+func (app *application) listDevilFruitsHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Search  string
 		Type    string
