@@ -39,7 +39,7 @@ func (app *application) createCrewHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.models.Crew.Insert(crew)
+	err = app.models.Crews.Insert(crew)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -61,7 +61,7 @@ func (app *application) showCrewHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	crew, err := app.models.Crew.Get(id)
+	crew, err := app.models.Crews.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -86,7 +86,7 @@ func (app *application) updateCrewHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	crew, err := app.models.Crew.Get(id)
+	crew, err := app.models.Crews.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -128,7 +128,7 @@ func (app *application) updateCrewHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.models.Crew.Update(crew)
+	err = app.models.Crews.Update(crew)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -148,7 +148,7 @@ func (app *application) deleteCrewHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.models.Crew.Delete(id)
+	err = app.models.Crews.Delete(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):

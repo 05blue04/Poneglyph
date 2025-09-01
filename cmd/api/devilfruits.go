@@ -42,7 +42,7 @@ func (app *application) createDevilFruitHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = app.models.DevilFruit.Insert(devilFruit)
+	err = app.models.DevilFruits.Insert(devilFruit)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -64,7 +64,7 @@ func (app *application) showDevilFruitHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	devilFruit, err := app.models.DevilFruit.Get(id)
+	devilFruit, err := app.models.DevilFruits.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -89,7 +89,7 @@ func (app *application) updateDevilFruitHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	devilFruit, err := app.models.DevilFruit.Get(id)
+	devilFruit, err := app.models.DevilFruits.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -132,7 +132,7 @@ func (app *application) updateDevilFruitHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = app.models.DevilFruit.Update(devilFruit)
+	err = app.models.DevilFruits.Update(devilFruit)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -152,7 +152,7 @@ func (app *application) deleteDevilFruitHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = app.models.DevilFruit.Delete(id)
+	err = app.models.DevilFruits.Delete(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -191,7 +191,7 @@ func (app *application) listDevilFruitsHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	devilFruits, metadata, err := app.models.DevilFruit.GetAll(input.Search, input.Type, input.Filters)
+	devilFruits, metadata, err := app.models.DevilFruits.GetAll(input.Search, input.Type, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
