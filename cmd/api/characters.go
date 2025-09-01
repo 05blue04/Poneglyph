@@ -19,7 +19,6 @@ func (app *application) createCharacterHandler(w http.ResponseWriter, r *http.Re
 		Bounty      *data.Berries `json:"bounty,omitempty"` //optional field
 		Race        string        `json:"race"`
 		Episode     int           `json:"episode"`
-		TimeSkip    string        `json:"time_skip"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -36,7 +35,6 @@ func (app *application) createCharacterHandler(w http.ResponseWriter, r *http.Re
 		Bounty:      input.Bounty,
 		Race:        strings.ToLower(input.Race),
 		Episode:     input.Episode,
-		TimeSkip:    strings.ToLower(input.TimeSkip),
 	}
 
 	v := validator.New()
@@ -112,7 +110,6 @@ func (app *application) updateCharacterHandler(w http.ResponseWriter, r *http.Re
 		Bounty      *data.Berries `json:"bounty,omitempty"`
 		Race        *string       `json:"race"`
 		Episode     *int          `json:"episode"`
-		TimeSkip    *string       `json:"time_skip"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -121,21 +118,16 @@ func (app *application) updateCharacterHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if input.Race != nil {
-		race := strings.ToLower(*input.TimeSkip)
-		character.Race = race
-	}
-
-	if input.TimeSkip != nil {
-		timeSkip := strings.ToLower(*input.TimeSkip)
-		character.TimeSkip = timeSkip
-	}
-
 	updateIfNotNil(&character.Name, input.Name)
 	updateIfNotNil(&character.Age, input.Age)
 	updateIfNotNil(&character.Description, input.Description)
 	updateIfNotNil(&character.Origin, input.Origin)
 	updateIfNotNil(&character.Episode, input.Episode)
+
+	if input.Race != nil {
+		race := strings.ToLower(*input.Race)
+		character.Race = race
+	}
 
 	if input.Bounty != nil {
 		character.Bounty = input.Bounty
@@ -188,12 +180,11 @@ func (app *application) deleteCharacterHandler(w http.ResponseWriter, r *http.Re
 
 func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Search   string
-		Age      int
-		Origin   string
-		Race     string
-		Bounty   data.Berries
-		TimeSkip string
+		Search string
+		Age    int
+		Origin string
+		Race   string
+		Bounty data.Berries
 		data.Filters
 	}
 
@@ -206,7 +197,6 @@ func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Req
 	input.Origin = app.readString(qs, "origin", "")
 	input.Race = strings.ToLower(app.readString(qs, "race", ""))
 	input.Bounty = app.readBounty(qs, "bounty", data.Berries(0), v)
-	input.TimeSkip = strings.ToLower(app.readString(qs, "time_skip", ""))
 
 	//pagination shit
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
@@ -220,7 +210,7 @@ func (app *application) listCharactersHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	characters, metadata, err := app.models.Characters.GetAll(input.Search, input.Age, input.Origin, input.Race, input.Bounty, input.TimeSkip, input.Filters)
+	characters, metadata, err := app.models.Characters.GetAll(input.Search, input.Age, input.Origin, input.Race, input.Bounty, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

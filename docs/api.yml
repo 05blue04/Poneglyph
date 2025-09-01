@@ -60,14 +60,6 @@ paths:
             type: integer
             minimum: 0
             example: 100000000
-        - name: time_skip
-          in: query
-          description: Filter by time skip period 
-          required: false
-          schema:
-            type: string
-            enum: [pre, post]
-            example: "post"
         - name: page
           in: query
           description: Page number for pagination
@@ -120,7 +112,6 @@ paths:
                     bounty: "3B berries"
                     race: "human"
                     episode: 1
-                    time_skip: "post"
                   - id: 2
                     name: "Roronoa Zoro"
                     age: 21
@@ -129,7 +120,6 @@ paths:
                     bounty: "1.11B berries"
                     race: "human"
                     episode: 2
-                    time_skip: "post"
                 metadata:
                   current_page: 1
                   page_size: 20
@@ -160,7 +150,6 @@ paths:
               bounty: "30M berries"
               race: "human"
               episode: 1
-              time_skip: "pre"
       responses:
         '201':
           description: Character created successfully
@@ -187,7 +176,6 @@ paths:
                   bounty: "30M berries"
                   race: "human"
                   episode: 1
-                  time_skip: "pre"
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -237,7 +225,6 @@ paths:
                   bounty: "3B berries"
                   race: "human"
                   episode: 1
-                  time_skip: "post"
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -269,7 +256,6 @@ paths:
             example:
               age: 19
               bounty: "3B berries"
-              time_skip: "post"
       responses:
         '200':
           description: Character updated successfully
@@ -290,7 +276,6 @@ paths:
                   bounty: "3B berries"
                   race: "human"
                   episode: 1
-                  time_skip: "post"
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -519,7 +504,6 @@ components:
         - origin
         - race
         - episode
-        - time_skip
       properties:
         id:
           type: integer
@@ -568,11 +552,6 @@ components:
           maximum: 1200
           description: Episode number where character first appeared
           example: 1
-        time_skip:
-          type: string
-          enum: [pre, post]
-          description: Whether character data is from pre or post time-skip
-          example: "post"
 
     CreateCharacterRequest:
       type: object
@@ -583,7 +562,6 @@ components:
         - origin
         - race
         - episode
-        - time_skip
       properties:
         name:
           type: string
@@ -626,11 +604,6 @@ components:
           maximum: 1200
           description: Episode number where character first appeared
           example: 1
-        time_skip:
-          type: string
-          enum: [pre, post, Pre, Post]
-          description: Whether character data is from pre or post time-skip (case will be normalized to lowercase)
-          example: "Pre"
 
     UpdateCharacterRequest:
       type: object
@@ -677,11 +650,6 @@ components:
           maximum: 1200
           description: Episode number where character first appeared
           example: 1
-        time_skip:
-          type: string
-          enum: [pre, post, Pre, Post]
-          description: Whether character data is from pre or post time-skip (case will be normalized to lowercase)
-          example: "post"
 
     DevilFruit:
       type: object

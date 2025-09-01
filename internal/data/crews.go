@@ -17,9 +17,7 @@ type Crew struct {
 	Description string    `json:"description"`
 	ShipName    string    `json:"ship_name"`
 	CaptainID   int64     `json:"captain_id"`
-	TotalBounty Berries   `json:"total_bounty"`
-	Episode     int       `json:"episode"`
-	TimeSkip    string    `json:"time_skip"`
+	// TotalBounty Berries   `json:"total_bounty"`
 }
 
 type CrewModel struct {
@@ -30,8 +28,6 @@ func ValidateCrew(v *validator.Validator, crew *Crew) {
 	validateName(v, "name", crew.Name)
 	validateDescription(v, crew.Description)
 	validateName(v, "ship_name", crew.ShipName)
-	validateEpisode(v, crew.Episode)
-	validateTimeSkip(v, crew.TimeSkip)
 
 	v.Check(crew.CaptainID > 0, "captain_id", "must be greater than 0")
 
@@ -39,7 +35,7 @@ func ValidateCrew(v *validator.Validator, crew *Crew) {
 
 func (m CrewModel) Insert(crew *Crew) error {
 	query := `
-		INSERT INTO crews (name, description, ship_name, captain_id, total_bounty, episode, time_skip)
+		INSERT INTO crews (name, description, ship_name, captain_id, total_bounty, episode)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
@@ -49,9 +45,6 @@ func (m CrewModel) Insert(crew *Crew) error {
 		crew.Description,
 		crew.ShipName,
 		crew.CaptainID,
-		crew.TotalBounty,
-		crew.Episode,
-		crew.TimeSkip,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
@@ -85,9 +78,6 @@ func (m CrewModel) Get(id int64) (*Crew, error) {
 		&crew.Description,
 		&crew.ShipName,
 		&crew.CaptainID,
-		&crew.TotalBounty,
-		&crew.Episode,
-		&crew.TimeSkip,
 	)
 
 	if err != nil {
@@ -105,17 +95,14 @@ func (m CrewModel) Get(id int64) (*Crew, error) {
 func (m CrewModel) Update(crew *Crew) error {
 	query := `
 		UPDATE crews
-		SET name = $1, description = $2, ship_name = $3, captain_id = $4, total_bounty = $5, episode = $6, time_skip = $7, updated_at = now()
-		WHERE id = $8
+		SET name = $1, description = $2, ship_name = $3, captain_id = $4, total_bounty = $5, episode = $6, updated_at = now()
+		WHERE id = $7
 	`
 	args := []any{
 		crew.Name,
 		crew.Description,
 		crew.ShipName,
 		crew.CaptainID,
-		crew.TotalBounty,
-		crew.Episode,
-		crew.TimeSkip,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)

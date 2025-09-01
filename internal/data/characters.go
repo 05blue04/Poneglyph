@@ -23,7 +23,6 @@ type Character struct {
 	Bounty      *Berries  `json:"bounty,omitempty"`
 	Race        string    `json:"race"`
 	Episode     int       `json:"episode"`
-	TimeSkip    string    `json:"time_skip"`
 }
 
 type CharacterModel struct {
@@ -53,14 +52,13 @@ func ValidateCharacter(v *validator.Validator, character *Character) {
 	v.Check(IsValidRace(character.Race), "race", "must be a valid One Piece race")
 
 	validateEpisode(v, character.Episode)
-	validateTimeSkip(v, character.TimeSkip)
 
 }
 
 func (m CharacterModel) Insert(character *Character) error {
 	query := `
-		INSERT INTO characters (name, age, description, origin, bounty, race, episode, time_skip)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO characters (name, age, description, origin, bounty, race, episode)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
 	var bounty sql.NullInt64
@@ -68,7 +66,7 @@ func (m CharacterModel) Insert(character *Character) error {
 		bounty = sql.NullInt64{Int64: int64(*character.Bounty), Valid: true}
 	}
 
-	args := []any{character.Name, character.Age, character.Description, character.Origin, bounty, character.Race, character.Episode, character.TimeSkip}
+	args := []any{character.Name, character.Age, character.Description, character.Origin, bounty, character.Race, character.Episode}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 
@@ -105,7 +103,6 @@ func (m CharacterModel) Get(id int64) (*Character, error) {
 		&character.Race,
 		&character.Bounty,
 		&character.Episode,
-		&character.TimeSkip,
 	)
 
 	if err != nil {
@@ -123,8 +120,8 @@ func (m CharacterModel) Get(id int64) (*Character, error) {
 func (m CharacterModel) Update(character *Character) error {
 	query := `
 		UPDATE characters
-		SET name = $1, age = $2, description = $3, origin = $4, bounty = $5, race = $6,time_skip = $7, updated_at = now() 
-		WHERE id = $8
+		SET name = $1, age = $2, description = $3, origin = $4, bounty = $5, race = $6, updated_at = now() 
+		WHERE id = $7
 	`
 	var bounty sql.NullInt64
 	if character.Bounty != nil {
@@ -138,7 +135,6 @@ func (m CharacterModel) Update(character *Character) error {
 		character.Origin,
 		bounty,
 		character.Race,
-		character.TimeSkip,
 		character.ID,
 	}
 
@@ -157,28 +153,28 @@ func (m CharacterModel) Delete(id int64) error {
 	return deleteRecord(m.DB, "characters", id)
 }
 
-func (m CharacterModel) GetAll(search string, age int, origin, race string, bounty Berries, timeSkip string, filters Filters) ([]*Character, Metadata, error) {
+func (m CharacterModel) GetAll(search string, age int, origin, race string, bounty Berries, filters Filters) ([]*Character, Metadata, error) {
 
-	bountyCondition := "(bounty >= $5 OR $5 = 0)"
+	bountyCondition := "(bounty >= $4 OR $4 = 0)"
 
 	if strings.Contains(filters.Sort, "bounty") {
-		bountyCondition = "(bounty >= $5 AND bounty > 0)"
+		bountyCondition = "(bounty >= $4 AND bounty > 0)"
 	}
+
 	query := fmt.Sprintf(`
-		SELECT COUNT(*) OVER(), id, created_at, name, age, description, origin, race, bounty, episode, time_skip
+		SELECT COUNT(*) OVER(), id, created_at, name, age, description, origin, race, bounty, episode 
 		FROM characters
 		WHERE (to_tsvector('english', name || ' ' || description) @@ plainto_tsquery('english', $1) OR $1 = '')
 		AND (LOWER(race) = LOWER($2) OR $2 = '')
-		AND (LOWER(time_skip) = LOWER($3) OR $3 = '')
-		AND (age >= $4 OR $4 = 0)
+		AND (age >= $3 OR $3 = 0)
 		AND %s
 		ORDER BY %s %s, id ASC
-		LIMIT $6 OFFSET $7`, bountyCondition, filters.sortColumn(), filters.sortDirection())
+		LIMIT $5 OFFSET $6`, bountyCondition, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query, search, race, timeSkip, age, bounty, filters.limit(), filters.offset())
+	rows, err := m.DB.QueryContext(ctx, query, search, race, age, bounty, filters.limit(), filters.offset())
 	if err != nil {
 		return nil, Metadata{}, err
 	}
@@ -203,7 +199,6 @@ func (m CharacterModel) GetAll(search string, age int, origin, race string, boun
 			&character.Race,
 			&character.Bounty,
 			&character.Episode,
-			&character.TimeSkip,
 		)
 		if err != nil {
 			return nil, Metadata{}, err

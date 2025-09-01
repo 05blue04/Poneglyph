@@ -59,11 +59,6 @@ func validateEpisode(v *validator.Validator, episode int) {
 	v.Check(episode > 0, "episode", "must not be negative")
 }
 
-func validateTimeSkip(v *validator.Validator, timeSkip string) {
-	v.Check(timeSkip != "", "time_skip", "must be provided")
-	v.Check(isValidTimeSkip(timeSkip), "time_skip", "must be either pre or post")
-}
-
 func validateBounty(v *validator.Validator, bounty Berries) {
 	v.Check(bounty >= 0, "bounty", "must not be negative")
 	v.Check(bounty <= 10000000000, "bounty", "must not exceed 10B berries")
@@ -85,18 +80,6 @@ func GetValidRaces() []string {
 		races = append(races, race)
 	}
 	return races
-}
-
-func isValidTimeSkip(timeSkip string) bool {
-	if timeSkip == "pre" {
-		return true
-	}
-
-	if timeSkip == "post" {
-		return true
-	}
-
-	return false
 }
 
 func IsValidType(devilFruitType string) bool {

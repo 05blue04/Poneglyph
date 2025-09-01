@@ -16,7 +16,6 @@ func (app *application) createCrewHandler(w http.ResponseWriter, r *http.Request
 		ShipName    string `json:"ship_name"`
 		CaptainID   int64  `json:"captain_id"`
 		Episode     int    `json:"episode"`
-		TimeSkip    string `json:"time_skip"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -30,9 +29,7 @@ func (app *application) createCrewHandler(w http.ResponseWriter, r *http.Request
 		Description: input.Description,
 		ShipName:    input.ShipName,
 		CaptainID:   input.CaptainID,
-		TotalBounty: data.Berries(0),
-		Episode:     input.Episode,
-		TimeSkip:    input.TimeSkip,
+		// TotalBounty: data.Berries(0),
 	}
 
 	v := validator.New()
@@ -107,7 +104,6 @@ func (app *application) updateCrewHandler(w http.ResponseWriter, r *http.Request
 		CaptainID   *int64        `json:"captain_id"`
 		TotalBounty *data.Berries `json:"total_bounty"`
 		Episode     *int          `json:"episode"`
-		TimeSkip    *string       `json:"time_skip"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -120,12 +116,10 @@ func (app *application) updateCrewHandler(w http.ResponseWriter, r *http.Request
 	updateIfNotNil(&crew.Description, input.Description)
 	updateIfNotNil(&crew.ShipName, input.ShipName)
 	updateIfNotNil(&crew.CaptainID, input.CaptainID)
-	updateIfNotNil(&crew.Episode, input.Episode)
-	updateIfNotNil(&crew.TimeSkip, input.TimeSkip)
 
-	if input.TotalBounty != nil {
-		crew.TotalBounty = *input.TotalBounty
-	}
+	// if input.TotalBounty != nil {
+	// 	crew.TotalBounty = *input.TotalBounty
+	// }
 
 	v := validator.New()
 
