@@ -211,3 +211,85 @@ func (app *application) deleteCrewHandler(w http.ResponseWriter, r *http.Request
 	}
 
 }
+
+func (app *application) addCrewMemberHandler(w http.ResponseWriter, r *http.Request) {
+	crewID, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	var input struct {
+		CharacterID int64 `json:"character_id"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	character, err := app.models.Characters.Get(input.CharacterID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.errorResponse(w, r, http.StatusUnprocessableEntity, "character_id does not exist")
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.models.Crews.AddMember(crewID, character.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (app *application) deleteCrewMemberHandler(w http.ResponseWriter, r *http.Request) {
+	crewID, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	var input struct {
+		CharacterID int64 `json:"character_id"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	character, err := app.models.Characters.Get(input.CharacterID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.errorResponse(w, r, http.StatusUnprocessableEntity, "character_id does not exist")
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.models.Crews.DeleteMember(crewID, character.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.errorResponse(w, r, http.StatusNotFound, fmt.Sprintf("character %v is not a member of this crew", character.Name))
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": fmt.Sprintf("crew member %v successfully deleted", character.Name)}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

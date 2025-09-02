@@ -125,3 +125,66 @@ func (m CrewModel) Update(crew *Crew) error {
 func (m CrewModel) Delete(id int64) error {
 	return deleteRecord(m.DB, "crews", id)
 }
+
+func (m CrewModel) AddMember(crewID, characterID int64) error {
+	query := `
+        INSERT INTO crew_members (character_id, crew_id)
+        VALUES ($1, $2)
+    `
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	_, err := m.DB.ExecContext(ctx, query, characterID, crewID)
+	if err != nil {
+		return err
+	}
+
+	bountyQuery := `
+        UPDATE crews
+        SET total_bounty = total_bounty + COALESCE((SELECT bounty FROM characters WHERE id = $1), 0)
+        WHERE id = $2
+    `
+
+	_, err = m.DB.ExecContext(ctx, bountyQuery, characterID, crewID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m CrewModel) DeleteMember(crewID, characterID int64) error {
+	query := `
+		DELETE FROM crew_members
+		WHERE crew_id = $1 AND character_id = $2
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, query, crewID, characterID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrRecordNotFound // or create a new error like ErrMemberNotFound
+	}
+
+	bountyQuery := `
+        UPDATE crews
+        SET total_bounty = total_bounty - COALESCE((SELECT bounty FROM characters WHERE id = $1), 0)
+        WHERE id = $2
+    `
+	_, err = m.DB.ExecContext(ctx, bountyQuery, crewID, characterID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
