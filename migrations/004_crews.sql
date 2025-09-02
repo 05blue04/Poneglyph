@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS crews (
 ); 
 
 CREATE TABLE IF NOT EXISTS crew_members (
-    character_id bigserial REFERENCES characters(id),
-    crew_id bigserial REFERENCES crews(id),
+    character_id bigserial REFERENCES characters(id) ON DELETE CASCADE,
+    crew_id bigserial REFERENCES crews(id) ON DELETE CASCADE,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     updated_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     PRIMARY KEY (character_id, crew_id)

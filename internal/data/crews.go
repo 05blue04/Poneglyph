@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/05blue04/Poneglyph/internal/validator"
@@ -110,8 +112,6 @@ func (m CrewModel) Get(id int64) (*Crew, error) {
 		return nil, err
 	}
 
-	crew.MemberCount += 1
-
 	return &crew, nil
 }
 
@@ -207,4 +207,60 @@ func (m CrewModel) DeleteMember(crewID, characterID int64) error {
 	}
 
 	return nil
+}
+
+func (m CrewModel) GetMembers(crewID int64, bounty Berries, filters Filters) ([]*CrewMember, Metadata, error) {
+
+	bountyCondition := "(c.bounty >= $2 OR $2 = 0)"
+
+	if strings.Contains(filters.Sort, "bounty") {
+		bountyCondition = "(c.bounty >= $2 AND c.bounty > 0)"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT COUNT(*) OVER(), c.id, c.name, c.bounty
+		FROM characters c
+		INNER JOIN crew_members cm ON c.id = cm.character_id
+		WHERE cm.crew_id = $1
+		AND %s
+		ORDER BY %s %s, c.id ASC
+		LIMIT $3 OFFSET $4`, bountyCondition, filters.sortColumn(), filters.sortDirection())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	args := []any{crewID, bounty, filters.limit(), filters.offset()}
+
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+
+	totalRecords := 0
+	var members []*CrewMember
+
+	for rows.Next() {
+		var member CrewMember
+		var bounty *Berries
+
+		err := rows.Scan(&totalRecords, &member.ID, &member.Name, &bounty)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+
+		if bounty != nil {
+			member.Bounty = *bounty
+		}
+
+		members = append(members, &member)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return members, metadata, nil
 }

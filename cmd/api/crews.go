@@ -47,6 +47,7 @@ func (app *application) createCrewHandler(w http.ResponseWriter, r *http.Request
 		CaptainID:   input.CaptainID,
 		CaptainName: character.Name,
 		TotalBounty: total_bounty,
+		MemberCount: 1,
 	}
 
 	v := validator.New()
@@ -57,6 +58,12 @@ func (app *application) createCrewHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	err = app.models.Crews.Insert(crew)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.models.Crews.AddMember(crew.ID, crew.CaptainID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -292,4 +299,55 @@ func (app *application) deleteCrewMemberHandler(w http.ResponseWriter, r *http.R
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) listCrewMembersHandler(w http.ResponseWriter, r *http.Request) {
+	crewID, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	_, err = app.models.Crews.Get(crewID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	var input struct {
+		Bounty data.Berries
+		data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Bounty = app.readBounty(qs, "bounty", data.Berries(0), v)
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "name", "bounty", "-id", "-name", "-bounty"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	members, metadata, err := app.models.Crews.GetMembers(crewID, input.Bounty, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"crew_members": members, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }
