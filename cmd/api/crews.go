@@ -15,7 +15,6 @@ func (app *application) createCrewHandler(w http.ResponseWriter, r *http.Request
 		Description string `json:"description"`
 		ShipName    string `json:"ship_name"`
 		CaptainID   int64  `json:"captain_id"`
-		Episode     int    `json:"episode"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -24,12 +23,30 @@ func (app *application) createCrewHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	character, err := app.models.Characters.Get(input.CaptainID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.errorResponse(w, r, http.StatusUnprocessableEntity, "character_id does not exist")
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	var total_bounty data.Berries
+
+	if character.Bounty != nil {
+		total_bounty = *character.Bounty
+	}
+
 	crew := &data.Crew{
 		Name:        input.Name,
 		Description: input.Description,
 		ShipName:    input.ShipName,
 		CaptainID:   input.CaptainID,
-		// TotalBounty: data.Berries(0),
+		CaptainName: character.Name,
+		TotalBounty: total_bounty,
 	}
 
 	v := validator.New()
@@ -98,12 +115,10 @@ func (app *application) updateCrewHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	var input struct {
-		Name        *string       `json:"name"`
-		Description *string       `json:"description"`
-		ShipName    *string       `json:"ship_name"`
-		CaptainID   *int64        `json:"captain_id"`
-		TotalBounty *data.Berries `json:"total_bounty"`
-		Episode     *int          `json:"episode"`
+		Name        *string `json:"name"`
+		Description *string `json:"description"`
+		ShipName    *string `json:"ship_name"`
+		CaptainID   *int64  `json:"captain_id"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -115,11 +130,42 @@ func (app *application) updateCrewHandler(w http.ResponseWriter, r *http.Request
 	updateIfNotNil(&crew.Name, input.Name)
 	updateIfNotNil(&crew.Description, input.Description)
 	updateIfNotNil(&crew.ShipName, input.ShipName)
-	updateIfNotNil(&crew.CaptainID, input.CaptainID)
 
-	// if input.TotalBounty != nil {
-	// 	crew.TotalBounty = *input.TotalBounty
-	// }
+	if input.CaptainID != nil {
+		newCaptain, err := app.models.Characters.Get(*input.CaptainID)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.errorResponse(w, r, http.StatusUnprocessableEntity, "character_id does not exist")
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+
+		oldCaptain, err := app.models.Characters.Get(crew.CaptainID)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+
+		var oldBounty data.Berries
+		var newBounty data.Berries
+
+		if oldCaptain.Bounty != nil {
+			oldBounty = *oldCaptain.Bounty
+		}
+
+		if newCaptain.Bounty != nil {
+			newBounty = *newCaptain.Bounty
+		}
+
+		newTotalBounty := (crew.TotalBounty - oldBounty) + newBounty
+
+		crew.CaptainID = newCaptain.ID
+		crew.CaptainName = newCaptain.Name
+		crew.TotalBounty = newTotalBounty
+	}
 
 	v := validator.New()
 

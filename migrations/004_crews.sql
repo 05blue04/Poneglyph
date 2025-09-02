@@ -6,13 +6,16 @@ CREATE TABLE IF NOT EXISTS crews (
     name text UNIQUE NOT NULL,
     description text NOT NULL,
     ship_name text,
-    captain_id bigserial REFERENCES characters(id) ON DELETE SET NULL
+    captain_id bigserial REFERENCES characters(id) ON DELETE SET NULL,
+    captain_name text,
+    total_bounty bigint
 ); 
 
 CREATE TABLE IF NOT EXISTS crew_members (
     character_id bigserial REFERENCES characters(id),
     crew_id bigserial REFERENCES crews(id),
-    role text,
+    created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
+    updated_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     PRIMARY KEY (character_id, crew_id)
 );
 

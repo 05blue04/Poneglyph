@@ -17,7 +17,8 @@ type Crew struct {
 	Description string    `json:"description"`
 	ShipName    string    `json:"ship_name"`
 	CaptainID   int64     `json:"captain_id"`
-	// TotalBounty Berries   `json:"total_bounty"`
+	CaptainName string    `json:"captain_name"`
+	TotalBounty Berries   `json:"total_bounty"`
 }
 
 type CrewModel struct {
@@ -35,8 +36,8 @@ func ValidateCrew(v *validator.Validator, crew *Crew) {
 
 func (m CrewModel) Insert(crew *Crew) error {
 	query := `
-		INSERT INTO crews (name, description, ship_name, captain_id, total_bounty, episode)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO crews (name, description, ship_name, captain_id, captain_name, total_bounty)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
 	`
 
@@ -45,6 +46,8 @@ func (m CrewModel) Insert(crew *Crew) error {
 		crew.Description,
 		crew.ShipName,
 		crew.CaptainID,
+		crew.CaptainName,
+		crew.TotalBounty,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
@@ -68,8 +71,6 @@ func (m CrewModel) Get(id int64) (*Crew, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	//calculate totalBounty here?
-
 	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&crew.ID,
 		&crew.CreatedAt,
@@ -78,6 +79,8 @@ func (m CrewModel) Get(id int64) (*Crew, error) {
 		&crew.Description,
 		&crew.ShipName,
 		&crew.CaptainID,
+		&crew.CaptainName,
+		&crew.TotalBounty,
 	)
 
 	if err != nil {
@@ -95,7 +98,7 @@ func (m CrewModel) Get(id int64) (*Crew, error) {
 func (m CrewModel) Update(crew *Crew) error {
 	query := `
 		UPDATE crews
-		SET name = $1, description = $2, ship_name = $3, captain_id = $4, total_bounty = $5, episode = $6, updated_at = now()
+		SET name = $1, description = $2, ship_name = $3, captain_id = $4, captain_name = $5, total_bounty = $6, updated_at = now()
 		WHERE id = $7
 	`
 	args := []any{
@@ -103,6 +106,9 @@ func (m CrewModel) Update(crew *Crew) error {
 		crew.Description,
 		crew.ShipName,
 		crew.CaptainID,
+		crew.CaptainName,
+		crew.TotalBounty,
+		crew.ID,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
