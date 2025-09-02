@@ -19,6 +19,13 @@ type Crew struct {
 	CaptainID   int64     `json:"captain_id"`
 	CaptainName string    `json:"captain_name"`
 	TotalBounty Berries   `json:"total_bounty"`
+	MemberCount int       `json:"member_count"`
+}
+
+type CrewMember struct {
+	ID     int64   `json:"id"`
+	Name   string  `json:"name"`
+	Bounty Berries `json:"bounty,omitempty"`
 }
 
 type CrewModel struct {
@@ -91,6 +98,19 @@ func (m CrewModel) Get(id int64) (*Crew, error) {
 			return nil, err
 		}
 	}
+
+	countQuery := `
+	    SELECT COUNT(*)
+	    FROM crew_members
+	    WHERE crew_id = $1
+	`
+
+	err = m.DB.QueryRowContext(ctx, countQuery, id).Scan(&crew.MemberCount)
+	if err != nil {
+		return nil, err
+	}
+
+	crew.MemberCount += 1
 
 	return &crew, nil
 }
@@ -173,7 +193,7 @@ func (m CrewModel) DeleteMember(crewID, characterID int64) error {
 	}
 
 	if rowsAffected == 0 {
-		return ErrRecordNotFound // or create a new error like ErrMemberNotFound
+		return ErrRecordNotFound
 	}
 
 	bountyQuery := `
