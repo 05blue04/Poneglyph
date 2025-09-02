@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -13,26 +14,50 @@ import (
 )
 
 type DevilFruit struct {
-	ID             int64     `json:"id"`
-	CreatedAt      time.Time `json:"-"`
-	UpdatedAt      time.Time `json:"-"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description"`
-	Type           string    `json:"type"`
-	Character_id   int64     `json:"character_id"`
-	PreviousOwners []string  `json:"previous_owners"`
-	Episode        int       `json:"episode"`
+	ID             int64          `json:"id"`
+	CreatedAt      time.Time      `json:"-"`
+	UpdatedAt      time.Time      `json:"-"`
+	Name           string         `json:"name"`
+	Description    string         `json:"description"`
+	Type           string         `json:"type"`
+	CurrentOwner   sql.NullString `json:"-"`
+	Character_id   sql.NullInt64  `json:"-"`
+	PreviousOwners []string       `json:"previous_owners"`
+	Episode        int            `json:"episode"`
 }
 
 type DevilFruitModel struct {
 	DB *sql.DB
 }
 
+func (df DevilFruit) MarshalJSON() ([]byte, error) {
+	var currentOwner *string
+	if df.CurrentOwner.Valid {
+		currentOwner = &df.CurrentOwner.String
+	}
+
+	var characterID *int64
+	if df.Character_id.Valid {
+		characterID = &df.Character_id.Int64
+	}
+
+	type Alias DevilFruit
+
+	return json.Marshal(struct {
+		Alias
+		CurrentOwner *string `json:"current_owner"`
+		CharacterID  *int64  `json:"character_id"`
+	}{
+		Alias:        Alias(df),
+		CurrentOwner: currentOwner,
+		CharacterID:  characterID,
+	})
+}
+
 func ValidateDevilFruit(v *validator.Validator, devilFruit *DevilFruit) {
 
 	validateName(v, "name", devilFruit.Name)
 	validateDescription(v, devilFruit.Description)
-
 	v.Check(devilFruit.Type != "", "type", "must be provided")
 	v.Check(IsValidType(devilFruit.Type), "type", "must be a valid devil fruit type")
 
@@ -42,10 +67,7 @@ func ValidateDevilFruit(v *validator.Validator, devilFruit *DevilFruit) {
 		v.Check(len(owner) <= 200, "previous_owners", fmt.Sprintf("owner name at index %d must not be more than 200 characters", i))
 		v.Check(utf8.ValidString(owner), "previous_owners", fmt.Sprintf("owner name at index %d must be valid UTF-8", i))
 	}
-
 	v.Check(validator.Unique(devilFruit.PreviousOwners), "previous_owners", "must not contain duplicates")
-
-	v.Check(devilFruit.Character_id >= 0, "character_id", "must be a positive integer")
 
 	validateEpisode(v, devilFruit.Episode)
 
@@ -53,12 +75,12 @@ func ValidateDevilFruit(v *validator.Validator, devilFruit *DevilFruit) {
 
 func (m DevilFruitModel) Insert(devilFruit *DevilFruit) error {
 	query := `
-		INSERT INTO devilfruits (name, description, type, character_id, previousOwners, episode)
-    	VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO devilfruits (name, description, type, character_id, current_owner, previousOwners, episode)
+    	VALUES ($1, $2, $3, $4, $5, $6, $7)
  		RETURNING id
 	`
 
-	args := []any{devilFruit.Name, devilFruit.Description, devilFruit.Type, devilFruit.Character_id, pq.Array(devilFruit.PreviousOwners), devilFruit.Episode}
+	args := []any{devilFruit.Name, devilFruit.Description, devilFruit.Type, devilFruit.Character_id, devilFruit.CurrentOwner, pq.Array(devilFruit.PreviousOwners), devilFruit.Episode}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
@@ -84,6 +106,7 @@ func (m DevilFruitModel) Get(id int64) (*DevilFruit, error) {
 		&devilFruit.Name,
 		&devilFruit.Description,
 		&devilFruit.Type,
+		&devilFruit.CurrentOwner,
 		&devilFruit.Character_id,
 		pq.Array(&devilFruit.PreviousOwners),
 		&devilFruit.Episode,
@@ -104,8 +127,8 @@ func (m DevilFruitModel) Get(id int64) (*DevilFruit, error) {
 func (m DevilFruitModel) Update(devilFruit *DevilFruit) error {
 	query := `
 		UPDATE devilfruits
-		SET name = $1, description = $2, type = $3, character_id = $4, previousOwners = $5, episode = $6, updated_at = now()
-		WHERE id = $7
+		SET name = $1, description = $2, type = $3, character_id = $4, current_owner = $5, previousOwners = $6, episode = $7, updated_at = now()
+		WHERE id = $8
 	`
 
 	args := []any{
@@ -113,6 +136,7 @@ func (m DevilFruitModel) Update(devilFruit *DevilFruit) error {
 		devilFruit.Description,
 		devilFruit.Type,
 		devilFruit.Character_id,
+		devilFruit.CurrentOwner,
 		pq.Array(devilFruit.PreviousOwners),
 		devilFruit.Episode,
 		devilFruit.ID,
@@ -194,6 +218,7 @@ func (m DevilFruitModel) GetAll(search, fruitType string, filters Filters) ([]*D
 			&devilFruit.Description,
 			&devilFruit.Type,
 			&devilFruit.Character_id,
+			&devilFruit.CurrentOwner,
 			pq.Array(&devilFruit.PreviousOwners),
 			&devilFruit.Episode,
 		)

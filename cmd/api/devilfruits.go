@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,7 +16,7 @@ func (app *application) createDevilFruitHandler(w http.ResponseWriter, r *http.R
 		Name           string   `json:"name"`
 		Description    string   `json:"description"`
 		Type           string   `json:"type"`
-		Character_id   int64    `json:"character_id"`
+		Character_id   *int64   `json:"character_id"`
 		PreviousOwners []string `json:"previous_owners"`
 		Episode        int      `json:"episode"`
 	}
@@ -26,11 +27,32 @@ func (app *application) createDevilFruitHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	var characterID sql.NullInt64
+	var currentOwner sql.NullString
+
+	// If character_id provided, fetch the character and auto-populate current_owner
+	if input.Character_id != nil {
+		character, err := app.models.Characters.Get(*input.Character_id)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.errorResponse(w, r, http.StatusUnprocessableEntity, "character_id does not exist")
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+
+		characterID = sql.NullInt64{Int64: character.ID, Valid: true}
+		currentOwner = sql.NullString{String: character.Name, Valid: true}
+	}
+
 	devilFruit := &data.DevilFruit{
 		Name:           input.Name,
 		Description:    input.Description,
 		Type:           strings.ToLower(input.Type),
-		Character_id:   input.Character_id,
+		Character_id:   characterID,
+		CurrentOwner:   currentOwner,
 		PreviousOwners: input.PreviousOwners,
 		Episode:        input.Episode,
 	}
@@ -118,11 +140,32 @@ func (app *application) updateDevilFruitHandler(w http.ResponseWriter, r *http.R
 	updateIfNotNil(&devilFruit.Name, input.Name)
 	updateIfNotNil(&devilFruit.Description, input.Description)
 	updateIfNotNil(&devilFruit.Type, input.Type)
-	updateIfNotNil(&devilFruit.Character_id, input.Character_id)
 	updateIfNotNil(&devilFruit.Episode, input.Episode)
 
 	if input.PreviousOwners != nil {
 		devilFruit.PreviousOwners = input.PreviousOwners
+	}
+
+	if input.Character_id != nil {
+		if *input.Character_id == 0 {
+			// Setting to 0 means remove the character (set to NULL)
+			devilFruit.Character_id = sql.NullInt64{Valid: false}
+			devilFruit.CurrentOwner = sql.NullString{Valid: false}
+		} else {
+			character, err := app.models.Characters.Get(*input.Character_id)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrRecordNotFound):
+					app.errorResponse(w, r, http.StatusUnprocessableEntity, "character_id does not exist")
+				default:
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+
+			devilFruit.Character_id = sql.NullInt64{Int64: character.ID, Valid: true}
+			devilFruit.CurrentOwner = sql.NullString{String: character.Name, Valid: true}
+		}
 	}
 
 	v := validator.New()
