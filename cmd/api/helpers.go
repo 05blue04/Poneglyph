@@ -200,3 +200,21 @@ func updateIfNotNil[T any](dest *T, src *T) {
 		*dest = *src
 	}
 }
+
+func (app *application) readCharacterIDParam(r *http.Request) (int64, error) {
+	params := httprouter.ParamsFromContext(r.Context())
+	id, err := strconv.ParseInt(params.ByName("character_id"), 10, 64)
+	if err != nil || id < 1 {
+		return 0, errors.New("invalid character_id parameter")
+	}
+	return id, nil
+}
+
+func (app *application) readCrewIDParam(r *http.Request) (int64, error) {
+	params := httprouter.ParamsFromContext(r.Context())
+	id, err := strconv.ParseInt(params.ByName("crew_id"), 10, 64)
+	if err != nil || id < 1 {
+		return 0, errors.New("invalid crew_id parameter")
+	}
+	return id, nil
+}

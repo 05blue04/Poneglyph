@@ -257,23 +257,19 @@ func (app *application) addCrewMemberHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (app *application) deleteCrewMemberHandler(w http.ResponseWriter, r *http.Request) {
-	crewID, err := app.readIDParam(r)
+	crewID, err := app.readCrewIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
-	var input struct {
-		CharacterID int64 `json:"character_id"`
-	}
-
-	err = app.readJSON(w, r, &input)
+	characterID, err := app.readCharacterIDParam(r)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.notFoundResponse(w, r)
 		return
 	}
 
-	character, err := app.models.Characters.Get(input.CharacterID)
+	character, err := app.models.Characters.Get(characterID)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
