@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS devilfruits(
     description TEXT NOT NULL,
     type TEXT NOT NULL,
     current_owner text,
-    character_id bigserial REFERENCES characters(id) ON DELETE SET NULL,
+    character_id bigint REFERENCES characters(id) ON DELETE SET NULL,
     previousOwners text[],
     episode int NOT NULL
 );
