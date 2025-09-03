@@ -1,38 +1,116 @@
 openapi: 3.0.3
 info:
-  title: Poneglyph API
+  title: Poneglyph - One Piece API
   description: |
-    A REST API for One Piece
+    A comprehensive REST API for managing One Piece universe data including characters, devil fruits, and crews.
     
+    This API provides endpoints to create, read, update, and delete information about:
+    - Characters with their bounties, races, and origins
+    - Devil Fruits with their types and ownership history
+    - Pirate Crews and their members
+    
+    **Pagination**: List endpoints support pagination with configurable page sizes.
+    **Search**: Full-text search capabilities on character and devil fruit names/descriptions.
     **Bounty Format**: Bounties are represented as human-readable strings:
     - `"100 berries"` for amounts under 1 million
     - `"1.5M berries"` for millions 
     - `"2.5B berries"` for billions
   version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
   contact:
     name: API Support
     url: https://github.com/05blue04/Poneglyph
+
+tags:
+  - name: healthcheck
+    description: API health monitoring
+  - name: characters
+    description: One Piece character management
+  - name: devilfruits
+    description: Devil Fruit information and ownership
+  - name: crews
+    description: Pirate crew management and membership
+
 paths:
-  /characters:
+  /healthcheck:
     get:
-      summary: List characters
-      description: |
-        Retrieve a paginated list of characters with optional filtering and sorting.
-        Supports full-text search across character names and descriptions.
       tags:
-        - Characters
+        - healthcheck
+      summary: Health check endpoint
+      description: Returns the current health status of the API
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "available"
+                  system_info:
+                    type: object
+                    properties:
+                      environment:
+                        type: string
+                        example: "development"
+                      version:
+                        type: string
+                        example: "1.0.0"
+
+  /characters:
+    post:
+      tags:
+        - characters
+      summary: Create a new character
+      description: Add a new One Piece character to the database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCharacterRequest'
+      responses:
+        '201':
+          description: Character created successfully
+          headers:
+            Location:
+              description: URL of the created character
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  character:
+                    $ref: '#/components/schemas/Character'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    get:
+      tags:
+        - characters
+      summary: List characters
+      description: Retrieve a paginated list of characters with optional filtering and searching
       parameters:
         - name: search
           in: query
-          description: Full-text search across character names and descriptions
-          required: false
+          description: Full-text search on character names and descriptions
           schema:
             type: string
-            example: "pirate king"
+            example: "luffy"
         - name: age
           in: query
-          description: Filter by minimum age (0 means no age filter)
-          required: false
+          description: Minimum age filter
           schema:
             type: integer
             minimum: 0
@@ -40,57 +118,35 @@ paths:
         - name: origin
           in: query
           description: Filter by character's origin location
-          required: false
           schema:
             type: string
             example: "East Blue"
         - name: race
           in: query
-          description: Filter by character race 
-          required: false
+          description: Filter by character race
           schema:
             type: string
-            enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", "snakeneck tribe", "longarm tribe", "longleg tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
+            enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
             example: "human"
         - name: bounty
           in: query
-          description: Filter by minimum bounty amount (in raw berries, 0 means no bounty filter)
-          required: false
+          description: Minimum bounty filter (in Berries)
           schema:
             type: integer
             minimum: 0
-            example: 100000000
-        - name: page
-          in: query
-          description: Page number for pagination
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-            example: 1
-        - name: page_size
-          in: query
-          description: Number of characters per page
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-            example: 20
+            example: 1000000
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
         - name: sort
           in: query
           description: Sort field and direction
-          required: false
           schema:
             type: string
             enum: [id, name, age, bounty, race, -id, -name, -age, -bounty, -race]
-            default: "id"
-            example: "-bounty"
+            default: id
       responses:
         '200':
-          description: Successfully retrieved characters
+          description: List of characters retrieved successfully
           content:
             application/json:
               schema:
@@ -102,112 +158,22 @@ paths:
                       $ref: '#/components/schemas/Character'
                   metadata:
                     $ref: '#/components/schemas/Metadata'
-              example:
-                characters:
-                  - id: 1
-                    name: "Monkey D. Luffy"
-                    age: 19
-                    description: "Captain of the Straw Hat Pirates and aspiring Pirate King"
-                    origin: "East Blue"
-                    bounty: "3B berries"
-                    race: "human"
-                    episode: 1
-                  - id: 2
-                    name: "Roronoa Zoro"
-                    age: 21
-                    description: "First mate and swordsman of the Straw Hat Pirates"
-                    origin: "East Blue"
-                    bounty: "1.11B berries"
-                    race: "human"
-                    episode: 2
-                metadata:
-                  current_page: 1
-                  page_size: 20
-                  first_page: 1
-                  last_page: 5
-                  total_records: 100
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
-          $ref: '#/components/responses/ServerError'
-
-    post:
-      summary: Create a new character
-      description: Add a new character to the database
-      tags:
-        - Characters
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCharacterRequest'
-            example:
-              name: "Monkey D. Luffy"
-              age: 17
-              description: "A young pirate with rubber powers who dreams of becoming the Pirate King"
-              origin: "Foosha Village, East Blue"
-              bounty: "30M berries"
-              race: "human"
-              episode: 1
-      responses:
-        '201':
-          description: Character created successfully
-          headers:
-            Location:
-              description: URL of the created character
-              schema:
-                type: string
-                example: "/v1/characters/123"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  character:
-                    $ref: '#/components/schemas/Character'
-              example:
-                character:
-                  id: 123
-                  name: "Monkey D. Luffy"
-                  age: 17
-                  description: "A young pirate with rubber powers who dreams of becoming the Pirate King"
-                  origin: "Foosha Village, East Blue"
-                  bounty: "30M berries"
-                  race: "human"
-                  episode: 1
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
 
   /characters/{id}:
     get:
-      summary: Get character by ID
-      description: Retrieve a specific character by their ID
       tags:
-        - Characters
+        - characters
+      summary: Get character by ID
+      description: Retrieve a specific character by their unique identifier
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Character ID
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-            example: 123
+        - $ref: '#/components/parameters/CharacterID'
       responses:
         '200':
-          description: Character found
-          headers:
-            Location:
-              description: URL of the character
-              schema:
-                type: string
-                example: "/v1/characters/123"
+          description: Character retrieved successfully
           content:
             application/json:
               schema:
@@ -215,47 +181,24 @@ paths:
                 properties:
                   character:
                     $ref: '#/components/schemas/Character'
-              example:
-                character:
-                  id: 123
-                  name: "Monkey D. Luffy"
-                  age: 19
-                  description: "Captain of the Straw Hat Pirates with rubber powers"
-                  origin: "Foosha Village, East Blue"
-                  bounty: "3B berries"
-                  race: "human"
-                  episode: 1
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
 
-    put:
-      summary: Update character
-      description: |
-        Update an existing character. All fields are optional - only provided 
-        fields will be updated. Partial updates are supported.
+    patch:
       tags:
-        - Characters
+        - characters
+      summary: Update character
+      description: Update an existing character's information (partial updates supported)
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Character ID
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-            example: 123
+        - $ref: '#/components/parameters/CharacterID'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateCharacterRequest'
-            example:
-              age: 19
-              bounty: "3B berries"
       responses:
         '200':
           description: Character updated successfully
@@ -266,16 +209,6 @@ paths:
                 properties:
                   character:
                     $ref: '#/components/schemas/Character'
-              example:
-                character:
-                  id: 123
-                  name: "Monkey D. Luffy"
-                  age: 19
-                  description: "Captain of the Straw Hat Pirates with rubber powers"
-                  origin: "Foosha Village, East Blue"
-                  bounty: "3B berries"
-                  race: "human"
-                  episode: 1
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -283,67 +216,48 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
 
     delete:
-      summary: Delete character
-      description: Delete a character from the database
       tags:
-        - Characters
+        - characters
+      summary: Delete character
+      description: Remove a character from the database
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Character ID
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-            example: 123
+        - $ref: '#/components/parameters/CharacterID'
       responses:
         '200':
           description: Character deleted successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "character successfully deleted"
+                $ref: '#/components/schemas/SuccessMessage'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
 
   /devilfruits:
     post:
-      summary: Create a new Devil Fruit
-      description: Add a new Devil Fruit to the database
       tags:
-        - Devil Fruits
+        - devilfruits
+      summary: Create a new devil fruit
+      description: Add a new devil fruit to the database
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateDevilFruitRequest'
-            example:
-              name: "Mera Mera no Mi"
-              description: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
-              type: "logia"
-              character_id: 456
-              previous_owners: ["Portgas D. Ace"]
-              episode: 94
       responses:
         '201':
-          description: Devil Fruit created successfully
+          description: Devil fruit created successfully
           headers:
             Location:
-              description: URL of the created Devil Fruit
+              description: URL of the created devil fruit
               schema:
                 type: string
-                example: "/v1/devilfruits/789"
+                format: uri
           content:
             application/json:
               schema:
@@ -351,41 +265,71 @@ paths:
                 properties:
                   devilfruit:
                     $ref: '#/components/schemas/DevilFruit'
-              example:
-                devilfruit:
-                  id: 789
-                  name: "Mera Mera no Mi"
-                  description: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
-                  type: "logia"
-                  character_id: 456
-                  previous_owners: ["Portgas D. Ace"]
-                  episode: 94
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
+
+    get:
+      tags:
+        - devilfruits
+      summary: List devil fruits
+      description: Retrieve a paginated list of devil fruits with optional filtering and searching
+      parameters:
+        - name: search
+          in: query
+          description: Full-text search on devil fruit names and descriptions
+          schema:
+            type: string
+            example: "gomu"
+        - name: type
+          in: query
+          description: Filter by devil fruit type
+          schema:
+            type: string
+            enum: [paramecia, zoan, logia]
+            example: "paramecia"
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Sort field and direction
+          schema:
+            type: string
+            enum: [id, name, -id, -name]
+            default: id
+      responses:
+        '200':
+          description: List of devil fruits retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devil_fruits:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DevilFruit'
+                  metadata:
+                    $ref: '#/components/schemas/Metadata'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /devilfruits/{id}:
     get:
-      summary: Get Devil Fruit by ID
-      description: Retrieve a specific Devil Fruit by its ID
       tags:
-        - Devil Fruits
+        - devilfruits
+      summary: Get devil fruit by ID
+      description: Retrieve a specific devil fruit by its unique identifier
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Devil Fruit ID
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-            example: 789
+        - $ref: '#/components/parameters/DevilFruitID'
       responses:
         '200':
-          description: Devil Fruit found
+          description: Devil fruit retrieved successfully
           content:
             application/json:
               schema:
@@ -393,49 +337,27 @@ paths:
                 properties:
                   devilfruit:
                     $ref: '#/components/schemas/DevilFruit'
-              example:
-                devilfruit:
-                  id: 789
-                  name: "Mera Mera no Mi"
-                  description: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
-                  type: "logia"
-                  character_id: 456
-                  previous_owners: ["Portgas D. Ace"]
-                  episode: 94
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
 
-    put:
-      summary: Update Devil Fruit
-      description: |
-        Update an existing Devil Fruit. All fields are optional - only provided 
-        fields will be updated. Partial updates are supported.
+    patch:
       tags:
-        - Devil Fruits
+        - devilfruits
+      summary: Update devil fruit
+      description: Update an existing devil fruit's information (partial updates supported)
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Devil Fruit ID
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-            example: 789
+        - $ref: '#/components/parameters/DevilFruitID'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateDevilFruitRequest'
-            example:
-              character_id: 999
-              previous_owners: ["Portgas D. Ace"]
       responses:
         '200':
-          description: Devil Fruit updated successfully
+          description: Devil fruit updated successfully
           content:
             application/json:
               schema:
@@ -443,15 +365,6 @@ paths:
                 properties:
                   devilfruit:
                     $ref: '#/components/schemas/DevilFruit'
-              example:
-                devilfruit:
-                  id: 789
-                  name: "Mera Mera no Mi"
-                  description: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
-                  type: "logia"
-                  character_id: 999
-                  previous_owners: ["Portgas D. Ace"]
-                  episode: 94
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -459,98 +372,356 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
 
     delete:
-      summary: Delete Devil Fruit
-      description: Delete a Devil Fruit from the database
       tags:
-        - Devil Fruits
+        - devilfruits
+      summary: Delete devil fruit
+      description: Remove a devil fruit from the database
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Devil Fruit ID
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-            example: 789
+        - $ref: '#/components/parameters/DevilFruitID'
       responses:
         '200':
-          description: Devil Fruit deleted successfully
+          description: Devil fruit deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /crews:
+    post:
+      tags:
+        - crews
+      summary: Create a new crew
+      description: Create a new pirate crew with a captain
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCrewRequest'
+      responses:
+        '201':
+          description: Crew created successfully
+          headers:
+            Location:
+              description: URL of the created crew
+              schema:
+                type: string
+                format: uri
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: "devilfruit successfully deleted"
+                  crew:
+                    $ref: '#/components/schemas/Crew'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /crews/{id}:
+    get:
+      tags:
+        - crews
+      summary: Get crew by ID
+      description: Retrieve a specific crew by its unique identifier
+      parameters:
+        - $ref: '#/components/parameters/CrewID'
+      responses:
+        '200':
+          description: Crew retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crew:
+                    $ref: '#/components/schemas/Crew'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      tags:
+        - crews
+      summary: Update crew
+      description: Update an existing crew's information (partial updates supported)
+      parameters:
+        - $ref: '#/components/parameters/CrewID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCrewRequest'
+      responses:
+        '200':
+          description: Crew updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crew:
+                    $ref: '#/components/schemas/Crew'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - crews
+      summary: Delete crew
+      description: Remove a crew from the database
+      parameters:
+        - $ref: '#/components/parameters/CrewID'
+      responses:
+        '200':
+          description: Crew deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /crews/{id}/members:
+    post:
+      tags:
+        - crews
+      summary: Add crew member
+      description: Add a character as a member to the specified crew
+      parameters:
+        - $ref: '#/components/parameters/CrewID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - character_id
+              properties:
+                character_id:
+                  type: integer
+                  format: int64
+                  description: ID of the character to add to the crew
+                  example: 1
+      responses:
+        '204':
+          description: Member added successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    get:
+      tags:
+        - crews
+      summary: List crew members
+      description: Retrieve a paginated list of crew members
+      parameters:
+        - $ref: '#/components/parameters/CrewID'
+        - name: bounty
+          in: query
+          description: Minimum bounty filter for crew members
+          schema:
+            type: integer
+            minimum: 0
+            example: 100000
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Sort field and direction
+          schema:
+            type: string
+            enum: [id, name, bounty, -id, -name, -bounty]
+            default: id
+      responses:
+        '200':
+          description: List of crew members retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crew_members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CrewMember'
+                  metadata:
+                    $ref: '#/components/schemas/Metadata'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /crews/{crew_id}/members/{character_id}:
+    delete:
+      tags:
+        - crews
+      summary: Remove crew member
+      description: Remove a character from the specified crew
+      parameters:
+        - name: crew_id
+          in: path
+          required: true
+          description: Unique identifier for the crew
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            example: 1
+        - name: character_id
+          in: path
+          required: true
+          description: Unique identifier for the character to remove
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            example: 2
+      responses:
+        '200':
+          description: Member removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
 components:
+  parameters:
+    CharacterID:
+      name: id
+      in: path
+      required: true
+      description: Unique identifier for a character
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 1
+
+    DevilFruitID:
+      name: id
+      in: path
+      required: true
+      description: Unique identifier for a devil fruit
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 1
+
+    CrewID:
+      name: id
+      in: path
+      required: true
+      description: Unique identifier for a crew
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 1
+
+    Page:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 10000000
+        default: 1
+        example: 1
+
+    PageSize:
+      name: page_size
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+
   schemas:
     Character:
       type: object
-      required:
-        - id
-        - name
-        - age
-        - description
-        - origin
-        - race
-        - episode
       properties:
         id:
           type: integer
           format: int64
           description: Unique identifier for the character
-          example: 123
+          example: 1
         name:
           type: string
-          maxLength: 300
           description: Character's full name
           example: "Monkey D. Luffy"
         age:
           type: integer
+          description: Character's age
           minimum: 1
-          description: Character's age in years
           example: 19
         description:
           type: string
+          description: Detailed description of the character
           minLength: 10
           maxLength: 2000
-          description: Character description and background
-          example: "Captain of the Straw Hat Pirates with rubber powers who dreams of becoming the Pirate King"
+          example: "The main protagonist of One Piece, captain of the Straw Hat Pirates"
         origin:
           type: string
-          maxLength: 200
           description: Character's place of origin
+          maxLength: 200
           example: "Foosha Village, East Blue"
         bounty:
-          type: string
-          description: |
-            Character's bounty in berries. Format examples:
-            - "100 berries" (under 1 million)
-            - "1.5M berries" (millions)
-            - "2.5B berries" (billions)
-            - null for characters without bounties
+          type: integer
+          format: int64
           nullable: true
-          example: "3B berries"
+          description: Character's current bounty in Berries
+          minimum: 0
+          maximum: 10000000000
+          example: 3000000000
         race:
           type: string
-          description: Character's race or species
-          enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", "snakeneck tribe", "longarm tribe", "longleg tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
+          description: Character's race/species
           example: "human"
         episode:
           type: integer
+          description: First episode appearance
           minimum: 1
           maximum: 1200
-          description: Episode number where character first appeared
           example: 1
 
     CreateCharacterRequest:
@@ -566,143 +737,122 @@ components:
         name:
           type: string
           maxLength: 300
-          description: Character's full name
-          example: "Monkey D. Luffy"
+          example: "Roronoa Zoro"
         age:
           type: integer
           minimum: 1
-          description: Character's age in years
-          example: 17
+          example: 21
         description:
           type: string
           minLength: 10
           maxLength: 2000
-          description: Character description and background
-          example: "A young pirate with rubber powers who dreams of becoming the Pirate King"
+          example: "First mate and swordsman of the Straw Hat Pirates"
         origin:
           type: string
           maxLength: 200
-          description: Character's place of origin
-          example: "Foosha Village, East Blue"
+          example: "Shimotsuki Village, East Blue"
         bounty:
-          type: string
-          description: |
-            Character's bounty in berries (optional). Format examples:
-            - "100 berries" (under 1 million)
-            - "1.5M berries" (millions)
-            - "2.5B berries" (billions)
+          type: integer
+          format: int64
+          minimum: 100
+          maximum: 10000000000
           nullable: true
-          example: "30M berries"
+          example: 1111000000
         race:
           type: string
-          description: Character's race or species (case will be normalized to lowercase)
-          enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", "snakeneck tribe", "longarm tribe", "longleg tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
-          example: "Human"
-        episode:
-          type: integer
-          minimum: 1
-          maximum: 1200
-          description: Episode number where character first appeared
-          example: 1
-
-    UpdateCharacterRequest:
-      type: object
-      description: All fields are optional for partial updates
-      properties:
-        name:
-          type: string
-          maxLength: 300
-          description: Character's full name
-          example: "Monkey D. Luffy"
-        age:
-          type: integer
-          minimum: 1
-          description: Character's age in years
-          example: 19
-        description:
-          type: string
-          minLength: 10
-          maxLength: 2000
-          description: Character description and background
-          example: "Captain of the Straw Hat Pirates with rubber powers"
-        origin:
-          type: string
-          maxLength: 200
-          description: Character's place of origin
-          example: "Foosha Village, East Blue"
-        bounty:
-          type: string
-          description: |
-            Character's bounty in berries. Format examples:
-            - "100 berries" (under 1 million)
-            - "1.5M berries" (millions)
-            - "2.5B berries" (billions)
-          nullable: true
-          example: "3B berries"
-        race:
-          type: string
-          description: Character's race or species (case will be normalized to lowercase)
-          enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", "snakeneck tribe", "longarm tribe", "longleg tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
+          enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
           example: "human"
         episode:
           type: integer
           minimum: 1
           maximum: 1200
-          description: Episode number where character first appeared
-          example: 1
+          example: 2
 
-    DevilFruit:
+    UpdateCharacterRequest:
       type: object
-      required:
-        - id
-        - name
-        - description
-        - type
-        - character_id
-        - previous_owners
-        - episode
       properties:
-        id:
-          type: integer
-          format: int64
-          description: Unique identifier for the Devil Fruit
-          example: 789
         name:
           type: string
           maxLength: 300
-          description: Devil Fruit's name
-          example: "Mera Mera no Mi"
+          example: "Roronoa Zoro"
+        age:
+          type: integer
+          minimum: 1
+          example: 21
         description:
           type: string
           minLength: 10
           maxLength: 2000
-          description: Devil Fruit description and abilities
-          example: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+          example: "First mate and swordsman of the Straw Hat Pirates"
+        origin:
+          type: string
+          maxLength: 200
+          example: "Shimotsuki Village, East Blue"
+        bounty:
+          type: integer
+          format: int64
+          minimum: 100
+          maximum: 10000000000
+          nullable: true
+          example: 1111000000
+        race:
+          type: string
+          enum: [human, fishman, merman, giant, dwarf, mink, lunarian, buccaneer, "long arm tribe", "long leg tribe", "snake neck tribe", "three-eye tribe", tontatta, kuja, skypiean, shandian, birkan, cyborg, zombie, "artificial human", reindeer, skeleton]
+          example: "human"
+        episode:
+          type: integer
+          minimum: 1
+          maximum: 1200
+          example: 2
+
+    DevilFruit:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier for the devil fruit
+          example: 1
+        name:
+          type: string
+          description: Devil fruit's name
+          example: "Gomu Gomu no Mi"
+        description:
+          type: string
+          description: Detailed description of the devil fruit's powers
+          minLength: 10
+          maxLength: 2000
+          example: "Allows the user's body to stretch like rubber"
         type:
           type: string
-          description: Type of Devil Fruit
-          enum: [zoan, paramecia, logia]
-          example: "logia"
+          enum: [paramecia, zoan, logia]
+          description: Type of devil fruit
+          example: "paramecia"
+        current_owner:
+          type: string
+          nullable: true
+          description: Name of the current owner
+          example: "Monkey D. Luffy"
         character_id:
           type: integer
           format: int64
-          minimum: 0
-          description: ID of the character who currently owns this Devil Fruit (0 if unowned)
-          example: 456
+          nullable: true
+          description: ID of the character who currently owns this fruit
+          example: 1
         previous_owners:
           type: array
           items:
             type: string
             maxLength: 200
           maxItems: 10
-          description: Array of previous owners' names
-          example: ["Portgas D. Ace"]
+          description: List of previous owners
+          example: []
         episode:
           type: integer
+          description: First episode appearance
           minimum: 1
           maximum: 1200
-          description: Episode number where Devil Fruit first appeared
-          example: 94
+          example: 1
 
     CreateDevilFruitRequest:
       type: object
@@ -710,90 +860,188 @@ components:
         - name
         - description
         - type
-        - character_id
         - episode
       properties:
         name:
           type: string
           maxLength: 300
-          description: Devil Fruit's name
           example: "Mera Mera no Mi"
         description:
           type: string
           minLength: 10
           maxLength: 2000
-          description: Devil Fruit description and abilities
-          example: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
+          example: "Allows the user to create, control, and transform into fire"
         type:
           type: string
-          description: Type of Devil Fruit (case will be normalized to lowercase)
-          enum: [zoan, paramecia, logia, Zoan, Paramecia, Logia]
-          example: "Logia"
-        character_id:
-          type: integer
-          format: int64
-          minimum: 0
-          description: ID of the character who currently owns this Devil Fruit (0 if unowned)
-          example: 456
-        previous_owners:
-          type: array
-          items:
-            type: string
-            maxLength: 200
-          maxItems: 10
-          description: Array of previous owners' names (optional)
-          example: ["Portgas D. Ace"]
-        episode:
-          type: integer
-          minimum: 1
-          maximum: 1200
-          description: Episode number where Devil Fruit first appeared
-          example: 94
-
-    UpdateDevilFruitRequest:
-      type: object
-      description: All fields are optional for partial updates
-      properties:
-        name:
-          type: string
-          maxLength: 300
-          description: Devil Fruit's name
-          example: "Mera Mera no Mi"
-        description:
-          type: string
-          minLength: 10
-          maxLength: 2000
-          description: Devil Fruit description and abilities
-          example: "A Logia-type Devil Fruit that allows the user to create, control, and transform into fire at will"
-        type:
-          type: string
-          description: Type of Devil Fruit (case will be normalized to lowercase)
-          enum: [zoan, paramecia, logia, Zoan, Paramecia, Logia]
+          enum: [paramecia, zoan, logia]
           example: "logia"
         character_id:
           type: integer
           format: int64
-          minimum: 0
-          description: ID of the character who currently owns this Devil Fruit (0 if unowned)
-          example: 999
+          nullable: true
+          description: ID of the character who owns this fruit
+          example: 2
         previous_owners:
           type: array
           items:
             type: string
             maxLength: 200
           maxItems: 10
-          description: Array of previous owners' names
           example: ["Portgas D. Ace"]
         episode:
           type: integer
           minimum: 1
           maximum: 1200
-          description: Episode number where Devil Fruit first appeared
           example: 94
+
+    UpdateDevilFruitRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 300
+          example: "Mera Mera no Mi"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: "Allows the user to create, control, and transform into fire"
+        type:
+          type: string
+          enum: [paramecia, zoan, logia]
+          example: "logia"
+        character_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: ID of the character who owns this fruit (set to 0 to remove owner)
+          example: 2
+        previous_owners:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 10
+          example: ["Portgas D. Ace"]
+        episode:
+          type: integer
+          minimum: 1
+          maximum: 1200
+          example: 94
+
+    Crew:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier for the crew
+          example: 1
+        name:
+          type: string
+          description: Crew's name
+          example: "Straw Hat Pirates"
+        description:
+          type: string
+          description: Detailed description of the crew
+          minLength: 10
+          maxLength: 2000
+          example: "A pirate crew led by Monkey D. Luffy"
+        ship_name:
+          type: string
+          description: Name of the crew's ship
+          maxLength: 300
+          example: "Thousand Sunny"
+        captain_id:
+          type: integer
+          format: int64
+          description: ID of the crew's captain
+          example: 1
+        captain_name:
+          type: string
+          description: Name of the crew's captain
+          example: "Monkey D. Luffy"
+        total_bounty:
+          type: integer
+          format: int64
+          description: Combined bounty of all crew members
+          example: 8816000000
+        member_count:
+          type: integer
+          description: Number of crew members
+          example: 10
+
+    CreateCrewRequest:
+      type: object
+      required:
+        - name
+        - description
+        - ship_name
+        - captain_id
+      properties:
+        name:
+          type: string
+          maxLength: 300
+          example: "Heart Pirates"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: "A pirate crew led by Trafalgar Law"
+        ship_name:
+          type: string
+          maxLength: 300
+          example: "Polar Tang"
+        captain_id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: ID of the character who will be the captain
+          example: 5
+
+    UpdateCrewRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 300
+          example: "Heart Pirates"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: "A pirate crew led by Trafalgar Law"
+        ship_name:
+          type: string
+          maxLength: 300
+          example: "Polar Tang"
+        captain_id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: ID of the character who will be the new captain
+          example: 5
+
+    CrewMember:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Character's unique identifier
+          example: 1
+        name:
+          type: string
+          description: Character's name
+          example: "Monkey D. Luffy"
+        bounty:
+          type: integer
+          format: int64
+          description: Character's bounty in Berries
+          example: 3000000000
 
     Metadata:
       type: object
-      description: Pagination metadata
       properties:
         current_page:
           type: integer
@@ -805,7 +1053,7 @@ components:
           example: 20
         first_page:
           type: integer
-          description: First page number (always 1)
+          description: First page number
           example: 1
         last_page:
           type: integer
@@ -813,8 +1061,15 @@ components:
           example: 5
         total_records:
           type: integer
-          description: Total number of records matching the query
+          description: Total number of records
           example: 100
+
+    SuccessMessage:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Operation completed successfully"
 
     Error:
       type: object
@@ -822,20 +1077,19 @@ components:
         error:
           type: string
           description: Error message
-          example: "the requested resource could not be found"
+          example: "Something went wrong"
 
     ValidationError:
       type: object
       properties:
         error:
           type: object
+          description: Validation errors by field
           additionalProperties:
             type: string
-          description: Validation errors keyed by field name
           example:
             name: "must be provided"
             age: "must be a positive integer"
-            race: "must be a valid One Piece race"
 
   responses:
     BadRequest:
@@ -844,43 +1098,24 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            error: "invalid JSON format"
 
     NotFound:
-      description: The requested resource was not found
+      description: Resource not found
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            error: "the requested resource could not be found"
 
     ValidationError:
-      description: Validation failed
+      description: Validation failed - check required fields and constraints
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ValidationError'
-          example:
-            error:
-              name: "must be provided"
-              type: "must be a valid devil fruit type"
-              character_id: "must be a positive integer"
-              episode: "must be provided"
-              previous_owners: "must not contain duplicates"
 
-    ServerError:
+    InternalError:
       description: Internal server error
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-          example:
-            error: "internal server error"
-
-tags:
-  - name: Characters
-    description: Operations for managing One Piece characters
-  - name: Devil Fruits
-    description: Operations for managing One Piece Devil Fruits
