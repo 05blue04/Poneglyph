@@ -186,7 +186,7 @@ func (m DevilFruitModel) Delete(id int64) error {
 func (m DevilFruitModel) GetAll(search, fruitType string, filters Filters) ([]*DevilFruit, Metadata, error) {
 
 	query := fmt.Sprintf(`
-		SELECT COUNT(*) OVER(), id, created_at, name, description, type, character_id, ,previousOwners, episode 
+		SELECT COUNT(*) OVER(), id, created_at, name, description, type, character_id, current_owner,previousOwners, episode 
 		FROM devilfruits
 		WHERE (to_tsvector('english', name || ' ' || description) @@ plainto_tsquery('english', $1) OR $1 = '')
 		AND (LOWER(type) = LOWER($2) OR $2 = '')
