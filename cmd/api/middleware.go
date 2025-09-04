@@ -1,10 +1,22 @@
 package main
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/05blue04/Poneglyph/internal/data"
 	"golang.org/x/time/rate"
+)
+
+type contextKey string
+
+const (
+	apiKeyContextKey contextKey = "apikey"
 )
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {
@@ -48,5 +60,44 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		headerParts := strings.Split(authHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		token := headerParts[1]
+
+		hash := sha256.Sum256([]byte(token))
+		hashString := hex.EncodeToString(hash[:])
+
+		apiKey, err := app.models.APIKeys.GetByHash(hashString)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.invalidAuthenticationTokenResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+
+		go func() {
+			app.models.APIKeys.UpdateLastUsed(apiKey.ID)
+		}()
+
+		ctx := context.WithValue(r.Context(), apiKeyContextKey, apiKey)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
