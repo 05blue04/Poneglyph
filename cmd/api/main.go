@@ -23,6 +23,12 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  time.Duration
 	}
+
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
+	}
 }
 
 type application struct {

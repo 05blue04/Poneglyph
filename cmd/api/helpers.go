@@ -129,6 +129,24 @@ func parseConfig() (config, error) {
 		return cfg, err
 	}
 
+	limiterRPSStr := getEnvWithDefault("LIMITER_RPS", "2")
+	cfg.limiter.rps, err = strconv.ParseFloat(limiterRPSStr, 64)
+	if err != nil {
+		return cfg, err
+	}
+
+	limiterBurstStr := getEnvWithDefault("LIMITER_BURST", "4")
+	cfg.limiter.burst, err = strconv.Atoi(limiterBurstStr)
+	if err != nil {
+		return cfg, err
+	}
+
+	limiterEnabledStr := getEnvWithDefault("LIMITER_ENABLED", "true")
+	cfg.limiter.enabled, err = strconv.ParseBool(limiterEnabledStr)
+	if err != nil {
+		return cfg, err
+	}
+
 	return cfg, nil
 }
 func getEnvWithDefault(key, defaultValue string) string {
