@@ -428,6 +428,59 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+    get:
+      tags:
+        - crews
+      summary: List crews
+      description: Retrieve a paginated list of crews with optional filtering and searching
+      parameters:
+        - name: search
+          in: query
+          description: Full-text search on crew names, descriptions, ship names, and captain names
+          schema:
+            type: string
+            example: "straw"
+        - name: ship_name
+          in: query
+          description: Filter by exact ship name (case-insensitive)
+          schema:
+            type: string
+            example: "Thousand Sunny"
+        - name: total_bounty
+          in: query
+          description: Minimum total bounty filter
+          schema:
+            type: string
+            pattern: '^(\d+(\.\d+)?[BMK]?\s*berries?|\d+\s*berries?)
+            example: "1B berries"
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Sort field and direction
+          schema:
+            type: string
+            enum: [id, name, total_bounty, -id, -name, -total_bounty]
+            default: id
+      responses:
+        '200':
+          description: List of crews retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crews:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Crew'
+                  metadata:
+                    $ref: '#/components/schemas/Metadata'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /crews/{id}:
     get:
       tags:
