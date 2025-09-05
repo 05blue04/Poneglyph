@@ -264,3 +264,60 @@ func (m CrewModel) GetMembers(crewID int64, bounty Berries, filters Filters) ([]
 
 	return members, metadata, nil
 }
+
+func (m CrewModel) GetAll(search string, shipName string, totalBounty Berries, filters Filters) ([]*Crew, Metadata, error) {
+	bountyCondition := "(total_bounty >= $3 OR $3 = 0)"
+	if strings.Contains(filters.Sort, "total_bounty") {
+		bountyCondition = "(total_bounty >= $3 AND total_bounty > 0)"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT COUNT(*) OVER(), 
+			c.id, c.created_at, c.updated_at, c.name, c.description, 
+			c.ship_name, c.captain_id, c.captain_name, c.total_bounty
+		FROM crews c
+		WHERE (to_tsvector('english', c.name || ' ' || c.description || ' ' || COALESCE(c.ship_name, '') || ' ' || COALESCE(c.captain_name, '')) @@ plainto_tsquery('english', $1) OR $1 = '')
+		AND (LOWER(c.ship_name) = LOWER($2) OR $2 = '' OR c.ship_name IS NULL)
+		AND %s
+		ORDER BY %s %s, c.id ASC
+		LIMIT $4 OFFSET $5`, bountyCondition, filters.sortColumn(), filters.sortDirection())
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, search, shipName, totalBounty, filters.limit(), filters.offset())
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+
+	crews := []*Crew{}
+	totalRecords := 0
+
+	for rows.Next() {
+		var crew Crew
+		err := rows.Scan(
+			&totalRecords,
+			&crew.ID,
+			&crew.CreatedAt,
+			&crew.UpdatedAt,
+			&crew.Name,
+			&crew.Description,
+			&crew.ShipName,
+			&crew.CaptainID,
+			&crew.CaptainName,
+			&crew.TotalBounty,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		crews = append(crews, &crew)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return crews, metadata, nil
+}

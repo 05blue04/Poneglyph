@@ -347,3 +347,41 @@ func (app *application) listCrewMembersHandler(w http.ResponseWriter, r *http.Re
 	}
 
 }
+
+func (app *application) listCrewsHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Search      string
+		ShipName    string
+		TotalBounty data.Berries
+		data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Search = app.readString(qs, "search", "")
+	input.TotalBounty = app.readBounty(qs, "total_bounty", data.Berries(0), v)
+	input.ShipName = app.readString(qs, "ship_name", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "name", "bounty", "-id", "-name", "-total_bounty"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	crews, metadata, err := app.models.Crews.GetAll(input.Search, input.ShipName, input.TotalBounty, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"crews": crews, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+}

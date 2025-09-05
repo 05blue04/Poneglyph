@@ -32,6 +32,7 @@ func (app *application) routes() http.Handler {
 	//crew endpoints
 	router.HandlerFunc(http.MethodPost, "/v1/crews", app.createCrewHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/crews/:id", app.showCrewHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/crews", app.listCrewsHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/crews/:id", app.updateCrewHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/crews/:id", app.deleteCrewHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/crews/:id/members", app.addCrewMemberHandler)
