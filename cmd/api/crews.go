@@ -257,7 +257,7 @@ func (app *application) addCrewMemberHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (app *application) deleteCrewMemberHandler(w http.ResponseWriter, r *http.Request) {
-	crewID, err := app.readCrewIDParam(r)
+	crewID, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
