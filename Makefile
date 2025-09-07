@@ -77,3 +77,12 @@ audit:
 build/api:
 	@echo 'Building cmd/api...'
 	go build -ldflags='-s' -o=./bin/api ./cmd/api
+
+# ==================================================================================== #
+# PRODUCTION
+# ==================================================================================== #
+
+## production/connect: connect to the production server
+.PHONY: production/connect
+production/connect:
+	ssh -i ~/.ssh/id_rsa_poneglyph NicoRobin@${PRODUCTION_HOST_IP}
