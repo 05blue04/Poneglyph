@@ -11,7 +11,7 @@ A RESTful API for the One Piece universe built with Go and PostgreSQL. Explore c
 - Built-in pagination, filtering, and sorting
 - Validated input with clear error responses
 - Custom API key authentication
-- Runtime and API metrics including memory stats, request/response counts, and processing times
+- API metrics including request/response counts and processing times
 
 ## Architecture 🌇
 
@@ -59,7 +59,7 @@ go run ./cmd/api
 
 ## Authentication
 
-All write operations (POST, PATCH, DELETE) require authentication using a Bearer token:
+All write operations (POST, PATCH, DELETE) require authentication using a Bearer token:(*ONLY if enabled in .env file)
 
 ```bash
 curl -H "Authorization: Bearer your-token-here" \
@@ -261,6 +261,13 @@ curl "https://api.poneglyph.dev/v1/healthcheck"
     "version": "1.0.0"
   }
 }
+```
+
+## Metrics 
+
+```bash
+curl -H "Authorization: Bearer your-token" \
+  "https://api.poneglyph.dev/v1/metrics"
 ```
 
 **Response:**
