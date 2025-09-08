@@ -31,6 +31,9 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	auth struct {
+		required bool
+	}
 }
 
 type application struct {

@@ -17,31 +17,31 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
 	//character endpoints
-	router.HandlerFunc(http.MethodPost, "/v1/characters", app.createCharacterHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/characters/:id", app.showCharacterHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/characters", app.listCharactersHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/characters/:id", app.updateCharacterHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/characters/:id", app.deleteCharacterHandler)
+	router.Handler(http.MethodPost, "/v1/characters", app.requireAuthOptional(http.HandlerFunc(app.createCharacterHandler)))
+	router.Handler(http.MethodPatch, "/v1/characters/:id", app.requireAuthOptional(http.HandlerFunc(app.updateCharacterHandler)))
+	router.Handler(http.MethodDelete, "/v1/characters/:id", app.requireAuthOptional(http.HandlerFunc(app.deleteCharacterHandler)))
 
 	//devilfruit endpoints
-	router.HandlerFunc(http.MethodPost, "/v1/devilfruits", app.createDevilFruitHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/devilfruits/:id", app.showDevilFruitHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/devilfruits", app.listDevilFruitsHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/devilfruits/:id", app.updateDevilFruitHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/devilfruits/:id", app.deleteDevilFruitHandler)
+	router.Handler(http.MethodPost, "/v1/devilfruits", app.requireAuthOptional(http.HandlerFunc(app.createDevilFruitHandler)))
+	router.Handler(http.MethodPatch, "/v1/devilfruits/:id", app.requireAuthOptional(http.HandlerFunc(app.updateDevilFruitHandler)))
+	router.Handler(http.MethodDelete, "/v1/devilfruits/:id", app.requireAuthOptional(http.HandlerFunc(app.deleteDevilFruitHandler)))
 
 	//crew endpoints
-	router.HandlerFunc(http.MethodPost, "/v1/crews", app.createCrewHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/crews/:id", app.showCrewHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/crews", app.listCrewsHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/crews/:id", app.updateCrewHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/crews/:id", app.deleteCrewHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/crews/:id/members", app.addCrewMemberHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/crews/:id/members", app.listCrewMembersHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/crews/:id/members/:character_id", app.deleteCrewMemberHandler)
+	router.Handler(http.MethodPost, "/v1/crews", app.requireAuthOptional(http.HandlerFunc(app.createCrewHandler)))
+	router.Handler(http.MethodPatch, "/v1/crews/:id", app.requireAuthOptional(http.HandlerFunc(app.updateCrewHandler)))
+	router.Handler(http.MethodDelete, "/v1/crews/:id", app.requireAuthOptional(http.HandlerFunc(app.deleteCrewHandler)))
+	router.Handler(http.MethodPost, "/v1/crews/:id/members", app.requireAuthOptional(http.HandlerFunc(app.addCrewMemberHandler)))
+	router.Handler(http.MethodDelete, "/v1/crews/:id/members/:character_id", app.requireAuthOptional(http.HandlerFunc(app.deleteCrewMemberHandler)))
 
 	//metric endpoint
-	router.Handler(http.MethodGet, "/v1/metrics", expvar.Handler())
+	router.Handler(http.MethodGet, "/v1/metrics", app.requireAuthOptional(expvar.Handler()))
 
 	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.logRequest(router)))))
 }

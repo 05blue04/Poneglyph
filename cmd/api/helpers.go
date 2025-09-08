@@ -147,6 +147,13 @@ func parseConfig() (config, error) {
 		return cfg, err
 	}
 
+	authRequired := os.Getenv("REQUIRE_AUTH")
+	if authRequired == "" {
+		cfg.auth.required = true // default to requiring auth
+	} else {
+		cfg.auth.required = authRequired == "true"
+	}
+
 	return cfg, nil
 }
 func getEnvWithDefault(key, defaultValue string) string {

@@ -154,6 +154,14 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 	})
 }
 
+func (app *application) requireAuthOptional(next http.Handler) http.Handler {
+	if !app.config.auth.required {
+		return next
+	}
+
+	return app.authenticate(next)
+}
+
 func (app *application) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
