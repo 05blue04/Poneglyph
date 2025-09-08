@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"log/slog"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/05blue04/Poneglyph/internal/data"
@@ -63,6 +65,16 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+
+	expvar.NewString("version").Set(version)
+
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		return time.Now().Unix()
+	}))
 
 	app := &application{
 		config: cfg,
