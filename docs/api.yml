@@ -24,8 +24,8 @@ info:
     url: https://github.com/05blue04/Poneglyph
 
 tags:
-  - name: healthcheck
-    description: API health monitoring
+  - name: monitoring
+    description: API status and metrics
   - name: characters
     description: One Piece character management
   - name: devilfruits
@@ -37,7 +37,7 @@ paths:
   /healthcheck:
     get:
       tags:
-        - healthcheck
+        - monitoring
       summary: Health check endpoint
       description: Returns the current health status of the API
       responses:
@@ -671,6 +671,41 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalError'
+  /v1/metrics:
+    get:
+      tags:
+        - monitoring
+      summary: System metrics endpoint
+      description: |
+        **For self-hosted deployments only.**
+        
+        Returns runtime metrics including memory usage, request counts, and performance data.
+        This endpoint should be secured with authentication and not exposed publicly.
+        
+        **Security Note:** This endpoint exposes internal system information and should only be accessible to authorized operators.
+      responses:
+        '200':
+          description: System metrics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goroutines:
+                    type: integer
+                    example: 7
+                  memstats:
+                    type: object
+                    description: Go runtime memory statistics
+                  timestamp:
+                    type: integer
+                    example: 1757298141
+                  total_requests_received:
+                    type: integer
+                    example: 1
+                  version:
+                    type: string
+                    example: "1.0.0"
 
 components:
   parameters:
