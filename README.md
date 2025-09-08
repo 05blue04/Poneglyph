@@ -44,6 +44,75 @@ goose postgres $DSN up
 # Start the server
 go run ./cmd/api
 ```
+### Authentication Modes
+
+**Development Mode** (`REQUIRE_AUTH=false`):
+- All endpoints accessible without authentication
+- Perfect for local development and testing
+- No API keys needed
+
+**Production Mode** (`REQUIRE_AUTH=true`):
+- Write operations require valid API keys
+- Read operations remain public
+- Enhanced security for production deployments
+
+## API Key Management 🔑
+
+For production deployments with authentication enabled (`REQUIRE_AUTH=true`), you'll need to create API keys for clients. The project includes convenient shell scripts for managing API keys.
+
+### Creating API Keys
+
+Use the included script to generate new API keys:
+
+```bash
+# Create a permanent API key
+./scripts/create-api-key.sh --name "Production Client"
+
+# Create a temporary key that expires in 30 days
+./scripts/create-api-key.sh --name "Temporary Access" --expires 30
+```
+
+**Example output:**
+```
+✅ API Key created successfully!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ID:      1
+Name:    Production Client
+Created: 2025-01-15 14:30:22
+
+🔑 API Key (save this securely - it won't be shown again):
+a1b2c3d4e5f6789012345678901234567890abcdef123456789012345678901234
+
+📝 Usage example:
+Authorization: Bearer a1b2c3d4e5f6789012345678901234567890abcdef123456789012345678901234
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### Viewing API Keys
+
+List all active API keys to monitor usage:
+
+```bash
+# Show all active keys
+./scripts/list-api-keys.sh
+
+# Show all keys including inactive ones
+./scripts/list-api-keys.sh --all
+```
+
+### Prerequisites for Scripts
+
+The scripts require:
+- `psql` command-line tool
+- Access to your `.env` file with `DSN` variable
+- The `api_keys` table (created by running migrations)
+
+### Security Notes
+
+- **API keys are only shown once** during creation - store them securely
+- Keys are stored as SHA-256 hashes in the database
+- Use the `--expires` flag for temporary access
+- Regularly audit your API keys using the list script
 
 ## Endpoints
 
